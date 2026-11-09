@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 import uuid
 import zipfile
 from enum import Enum
@@ -11,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 
 import qrcode
+import jwt
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
@@ -51,6 +53,15 @@ class ContactRequest(BaseModel):
     )
     department: str = Field(min_length=1, max_length=256)
     location: str = Field(min_length=1, max_length=256)
+
+
+class GoogleWalletSaveResponse(BaseModel):
+    save_url: str = Field(serialization_alias="saveUrl")
+    object_id: str = Field(serialization_alias="objectId")
+
+
+class GoogleWalletLinkTooLongError(ValueError):
+    pass
 
 
 app = FastAPI(title="PKPass Builder API", version="1.0.0")
@@ -104,6 +115,103 @@ def _vcard(contact: ContactRequest) -> str:
         "END:VCARD",
     ]
     return "\r\n".join(lines) + "\r\n"
+
+
+def _google_wallet_localized_string(value: str) -> dict:
+    return {"defaultValue": {"language": "en-US", "value": value}}
+
+
+def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
+    issuer_id = _required_setting("GOOGLE_WALLET_ISSUER_ID")
+    class_id = _required_setting("GOOGLE_WALLET_CLASS_ID")
+    if not class_id.startswith(f"{issuer_id}."):
+        raise ValueError("GOOGLE_WALLET_CLASS_ID must belong to GOOGLE_WALLET_ISSUER_ID")
+
+    credentials_path = _required_setting("GOOGLE_WALLET_SERVICE_ACCOUNT_JSON")
+    try:
+        credentials = json.loads(Path(credentials_path).read_text(encoding="utf-8"))
+    except OSError as error:
+        raise ValueError(
+            "GOOGLE_WALLET_SERVICE_ACCOUNT_JSON must point to a readable credentials file"
+        ) from error
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "Google Wallet service account credentials must be valid JSON"
+        ) from error
+    except UnicodeError as error:
+        raise ValueError(
+            "Google Wallet service account credentials must be a UTF-8 JSON file"
+        ) from error
+
+    if not isinstance(credentials, dict):
+        raise ValueError("Google Wallet service account credentials must be a JSON object")
+    service_account_email = credentials.get("client_email")
+    private_key = credentials.get("private_key")
+    if not service_account_email or not private_key:
+        raise ValueError(
+            "Google Wallet service account JSON must include client_email and private_key"
+        )
+
+    object_id = f"{issuer_id}.{uuid.uuid4()}"
+    vcard = _vcard(contact)
+    organization_name = os.getenv("GOOGLE_WALLET_ORGANIZATION_NAME", "Contact Pass")
+    generic_object = {
+        "id": object_id,
+        "classId": class_id,
+        "state": "ACTIVE",
+        "cardTitle": _google_wallet_localized_string(organization_name),
+        "header": _google_wallet_localized_string(contact.name),
+        "subheader": _google_wallet_localized_string(contact.job_position),
+        "hexBackgroundColor": "#17324d",
+        "textModulesData": [
+            {
+                "header": "Contact details",
+                "body": "\n".join(
+                    (
+                        f"Academic Degree: {contact.academic_degree}",
+                        f"Email: {contact.email}",
+                        f"Phone: {contact.phone_number}",
+                        f"Department: {contact.department}",
+                        f"Location: {contact.location}",
+                    )
+                ),
+            }
+        ],
+        "barcode": {
+            "type": "QR_CODE",
+            "value": vcard,
+            "alternateText": "Scan to add contact",
+        },
+    }
+
+    claims = {
+        "iss": service_account_email,
+        "aud": "google",
+        "typ": "savetowallet",
+        "iat": int(time.time()),
+        "payload": {"genericObjects": [generic_object]},
+    }
+    origins = [
+        origin.strip()
+        for origin in os.getenv("GOOGLE_WALLET_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    if origins:
+        claims["origins"] = origins
+
+    try:
+        signed_jwt = jwt.encode(claims, private_key, algorithm="RS256")
+    except (jwt.PyJWTError, TypeError, ValueError) as error:
+        raise RuntimeError(
+            "Could not sign Google Wallet JWT; verify the service account private key"
+        ) from error
+
+    save_url = f"https://pay.google.com/gp/v/save/{signed_jwt}"
+    if len(signed_jwt) > 1800:
+        raise GoogleWalletLinkTooLongError(
+            "Google Wallet JWT exceeds Google's 1800-character limit; shorten the contact fields"
+        )
+    return save_url, object_id
 
 
 def _png_bytes(image: Image.Image) -> bytes:
@@ -322,3 +430,20 @@ def create_pass(contact: ContactRequest) -> Response:
         media_type="application/vnd.apple.pkpass",
         headers={"Content-Disposition": 'attachment; filename="contact.pkpass"'},
     )
+
+
+@app.post(
+    "/passes/google-wallet",
+    response_model=GoogleWalletSaveResponse,
+    dependencies=[Depends(verify_api_key)],
+)
+def create_google_wallet_pass(contact: ContactRequest) -> GoogleWalletSaveResponse:
+    try:
+        save_url, object_id = build_google_wallet_save_url(contact)
+    except GoogleWalletLinkTooLongError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    return GoogleWalletSaveResponse(save_url=save_url, object_id=object_id)

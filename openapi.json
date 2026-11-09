@@ -3,7 +3,7 @@
   "info": {
     "title": "PKPass Builder API",
     "version": "1.0.0",
-    "description": "Creates Apple Wallet contact passes containing the submitted contact data and a QR code with a vCard 3.0 contact payload. In unsigned mode the resulting package is for development and cannot be installed in Apple Wallet. Signed mode requires valid Apple Pass Type ID signing credentials."
+    "description": "Creates Apple Wallet contact passes and Google Wallet Generic Pass save links containing the submitted contact data and a QR code with a vCard 3.0 contact payload. In unsigned mode Apple packages are for development and cannot be installed in Apple Wallet. Signed Apple passes require valid Apple Pass Type ID signing credentials."
   },
   "servers": [
     {
@@ -32,6 +32,86 @@
           }
         }
       }
+    },
+    "/passes/google-wallet": {
+        "post": {
+          "operationId": "createGoogleWalletPass",
+          "summary": "Create a Google Wallet save link",
+          "description": "Creates a signed Google Wallet save URL for a Generic Pass. A Google Wallet issuer, authorized service account, and pre-created approved Generic Class are required. The signed URL contains the contact data and should be treated as private. Google recommends keeping the encoded JWT below 1,800 characters.",
+          "security": [
+            {
+              "ApiKeyAuth": []
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactRequest"
+                },
+                "example": {
+                  "name": "Ada Lovelace",
+                  "academicDegree": "PhD",
+                  "jobPosition": "Researcher",
+                  "email": "ada@example.org",
+                  "phoneNumber": "+1 555 0100",
+                  "department": "Computing",
+                  "location": "London"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Google Wallet save link and Generic Object identifier encoded in the JWT.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/GoogleWalletSaveResponse"
+                  },
+                  "example": {
+                    "save_url": "https://pay.google.com/gp/v/save/eyJhbGciOiJSUzI1NiJ9.example",
+                    "object_id": "123456789.550e8400-e29b-41d4-a716-446655440000"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "The X-API-Key header is missing or invalid.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid or missing API key"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Invalid request data or Google Wallet JWT exceeds the supported length.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Google Wallet configuration or signing failed.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
     },
     "/passes": {
       "post": {
@@ -185,6 +265,24 @@
             "minLength": 1,
             "maxLength": 256,
             "description": "Contact's work location."
+          }
+        }
+      },
+      "GoogleWalletSaveResponse": {
+        "type": "object",
+        "required": [
+          "saveUrl",
+          "objectId"
+        ],
+        "properties": {
+          "saveUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Signed Google Wallet URL. Keep private because it includes pass data."
+          },
+          "objectId": {
+            "type": "string",
+            "description": "Unique Google Wallet Generic Object identifier."
           }
         }
       },
