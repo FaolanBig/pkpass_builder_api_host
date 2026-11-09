@@ -120,6 +120,22 @@ curl -X POST http://localhost:8000/passes/google-wallet \
   }'
 ```
 
+## Nuclio deployment
+
+The repository-root [nuclio_function.py](nuclio_function.py) exports the HTTP
+handler as `nuclio_function:handler`. Deploy the repository root as the function
+source so the bundle contains `nuclio_function.py`, the `app/` package, and
+`requirements.txt`. Install the packages from `requirements.txt` in the Nuclio
+Python runtime. Configure the same environment variables described above:
+`API_KEY` is required; Apple and Google Wallet settings are needed only for
+their respective signed-pass endpoints. The service-account and Apple
+certificate files must be mounted or otherwise provided to the function at the
+configured paths. Signed Apple passes also require the `openssl` executable in
+the runtime.
+
+The function exposes `GET /health`, `POST /passes`, and
+`POST /passes/google-wallet`. Both pass-creation routes require `X-API-Key`.
+
 ## Signing modes
 
 Set `PKPASS_SIGNING_MODE` to switch modes:
