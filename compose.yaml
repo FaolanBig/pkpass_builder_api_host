@@ -1,0 +1,17 @@
+services:
+  pkpass-builder:
+    image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.1.0
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      API_KEY: "${API_KEY:?Set API_KEY in your environment or .env file}"
+      PKPASS_SIGNING_MODE: "${PKPASS_SIGNING_MODE:-unsigned}"
+      PASS_TYPE_IDENTIFIER: "${PASS_TYPE_IDENTIFIER:-}"
+      TEAM_IDENTIFIER: "${TEAM_IDENTIFIER:-}"
+      ORGANIZATION_NAME: "${ORGANIZATION_NAME:-Contact Pass}"
+      PASS_CERTIFICATE_PATH: "${PASS_CERTIFICATE_PATH:-/run/secrets/pass-certificate.pem}"
+      PASS_PRIVATE_KEY_PATH: "${PASS_PRIVATE_KEY_PATH:-/run/secrets/pass-private-key.pem}"
+      APPLE_WWDR_CERTIFICATE_PATH: "${APPLE_WWDR_CERTIFICATE_PATH:-/run/secrets/wwdr.pem}"
+    volumes:
+      - "${CERTIFICATES_DIR:-./certificates}:/run/secrets:ro"
+    restart: unless-stopped

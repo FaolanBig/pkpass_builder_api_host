@@ -1,0 +1,256 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PKPass Builder API",
+    "version": "1.0.0",
+    "description": "Creates Apple Wallet contact passes containing the submitted contact data and a QR code with a vCard 3.0 contact payload. In unsigned mode the resulting package is for development and cannot be installed in Apple Wallet. Signed mode requires valid Apple Pass Type ID signing credentials."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Docker/container instance"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check service health",
+        "responses": {
+          "200": {
+            "description": "The API process is responsive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/passes": {
+      "post": {
+        "operationId": "createContactPass",
+        "summary": "Create a contact pass",
+        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactRequest"
+              },
+              "example": {
+                "name": "Ada Lovelace",
+                "academicDegree": "PhD",
+                "jobPosition": "Researcher",
+                "email": "ada@example.org",
+                "phoneNumber": "+1 555 0100",
+                "department": "Computing",
+                "location": "London"
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "The X-API-Key header is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "Invalid or missing API key"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Apple Wallet pass package.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "Suggested download filename.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "attachment; filename=\"contact.pkpass\""
+              }
+            },
+            "content": {
+              "application/vnd.apple.pkpass": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request body is invalid or a required field is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Pass generation or signing failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "PASS_TYPE_IDENTIFIER must be set when signed mode is enabled"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key configured on the server with the API_KEY environment variable."
+      }
+    },
+    "schemas": {
+      "ContactRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "academicDegree",
+          "jobPosition",
+          "email",
+          "phoneNumber",
+          "department",
+          "location"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Contact's full name. Also accepts `Name`."
+          },
+          "academicDegree": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Academic degree. Also accepts `academic_degree` or `Academic Degree`."
+          },
+          "jobPosition": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Job title or position. Also accepts `job_position` or `Job Position`."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Contact email address."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Contact phone number. Also accepts `phone_number` or `Phone Number`."
+          },
+          "department": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Contact's department."
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Contact's work location."
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "properties": {
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "loc",
+                "msg",
+                "type"
+              ],
+              "properties": {
+                "loc": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  }
+                },
+                "msg": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
