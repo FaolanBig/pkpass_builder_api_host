@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:latest` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.1.0` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 If the package is private, authenticate first with `docker login ghcr.io`.
 The API key is required and is passed to the container through the `API_KEY`
