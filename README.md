@@ -6,6 +6,32 @@ be scanned to add the contact to a phone.
 
 ## Run
 
+### Docker Compose
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:latest` from GitHub
+Container Registry. The image is published by the GitHub Actions workflow.
+If the package is private, authenticate first with `docker login ghcr.io`.
+
+The API is available at `http://localhost:8000`. Check its status and logs with:
+
+```sh
+docker compose ps
+docker compose logs -f pkpass-builder
+```
+
+Stop the service with `docker compose down`. The default Compose configuration
+uses unsigned development mode. To use signed mode, configure the signing
+environment variables listed below and place the certificate, private key, and
+WWDR certificate in `./certificates` (or set `CERTIFICATES_DIR` to another
+directory). The mounted certificate directory is read-only.
+
+### Docker
+
 ```sh
 docker build -t pkpass-builder .
 docker run --rm -p 8000:8000 pkpass-builder
