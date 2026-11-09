@@ -14,7 +14,7 @@ docker run --rm -p 8000:8000 pkpass-builder
 By default, the service runs in unsigned development mode. Check
 `http://localhost:8000/health` for service status and
 `http://localhost:8000/docs` for the interactive API documentation. The
-standalone OpenAPI specification is available in [openapi.yaml](openapi.yaml).
+standalone OpenAPI specification is available in [openapi.json](openapi.json).
 
 ## Create a pass
 
