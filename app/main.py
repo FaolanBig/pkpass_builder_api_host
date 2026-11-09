@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import json
 import os
 import subprocess
@@ -10,8 +11,9 @@ from io import BytesIO
 from pathlib import Path
 
 import qrcode
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
+from fastapi.security import APIKeyHeader
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 from PIL import Image, ImageDraw, ImageFont
 
@@ -52,6 +54,20 @@ class ContactRequest(BaseModel):
 
 
 app = FastAPI(title="PKPass Builder API", version="1.0.0")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def verify_api_key(api_key: str | None = Depends(api_key_header)) -> None:
+    expected_api_key = os.getenv("API_KEY")
+    if not expected_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="API_KEY must be configured on the server",
+        )
+    if api_key is None or not hmac.compare_digest(
+        api_key.encode("utf-8"), expected_api_key.encode("utf-8")
+    ):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 def _required_setting(name: str) -> str:
@@ -292,7 +308,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/passes")
+@app.post("/passes", dependencies=[Depends(verify_api_key)])
 def create_pass(contact: ContactRequest) -> Response:
     try:
         contents = build_pkpass(contact)

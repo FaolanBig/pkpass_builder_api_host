@@ -38,6 +38,11 @@
         "operationId": "createContactPass",
         "summary": "Create a contact pass",
         "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -58,6 +63,19 @@
           }
         },
         "responses": {
+          "401": {
+            "description": "The X-API-Key header is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "Invalid or missing API key"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Apple Wallet pass package.",
             "headers": {
@@ -106,6 +124,14 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key configured on the server with the API_KEY environment variable."
+      }
+    },
     "schemas": {
       "ContactRequest": {
         "type": "object",

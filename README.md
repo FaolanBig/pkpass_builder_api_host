@@ -9,6 +9,7 @@ be scanned to add the contact to a phone.
 ### Docker Compose
 
 ```sh
+export API_KEY="$(openssl rand -hex 32)"
 docker compose pull
 docker compose up -d
 ```
@@ -16,6 +17,8 @@ docker compose up -d
 Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:latest` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 If the package is private, authenticate first with `docker login ghcr.io`.
+The API key is required and is passed to the container through the `API_KEY`
+environment variable. Keep it secret; do not commit it to the repository.
 
 The API is available at `http://localhost:8000`. Check its status and logs with:
 
@@ -29,12 +32,13 @@ uses unsigned development mode. To use signed mode, configure the signing
 environment variables listed below and place the certificate, private key, and
 WWDR certificate in `./certificates` (or set `CERTIFICATES_DIR` to another
 directory). The mounted certificate directory is read-only.
+The unauthenticated `/health` endpoint is available for container health checks.
 
 ### Docker
 
 ```sh
 docker build -t pkpass-builder .
-docker run --rm -p 8000:8000 pkpass-builder
+docker run --rm -p 8000:8000 -e API_KEY="$API_KEY" pkpass-builder
 ```
 
 By default, the service runs in unsigned development mode. Check
@@ -44,12 +48,13 @@ standalone OpenAPI specification is available in [openapi.json](openapi.json).
 
 ## Create a pass
 
-Send a JSON request to `POST /passes`. Field names accept camelCase or snake_case;
-the labels `Name`, `Academic Degree`, `Job Position`, and `Phone Number` are also
-accepted.
+Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
+Field names accept camelCase or snake_case; the labels `Name`, `Academic Degree`,
+`Job Position`, and `Phone Number` are also accepted.
 
 ```sh
 curl -X POST http://localhost:8000/passes \
+  -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
     "name": "Ada Lovelace",
@@ -89,6 +94,7 @@ Mount credentials read-only rather than copying them into the image. For example
 
 ```sh
 docker run --rm -p 8000:8000 \
+  -e API_KEY="$API_KEY" \
   -e PKPASS_SIGNING_MODE=signed \
   -e PASS_TYPE_IDENTIFIER=pass.example.organization.contact \
   -e TEAM_IDENTIFIER=ABCDE12345 \

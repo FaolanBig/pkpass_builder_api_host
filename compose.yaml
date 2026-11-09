@@ -4,6 +4,7 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     environment:
+      API_KEY: "${API_KEY:?Set API_KEY in your environment or .env file}"
       PKPASS_SIGNING_MODE: "${PKPASS_SIGNING_MODE:-unsigned}"
       PASS_TYPE_IDENTIFIER: "${PASS_TYPE_IDENTIFIER:-}"
       TEAM_IDENTIFIER: "${TEAM_IDENTIFIER:-}"
