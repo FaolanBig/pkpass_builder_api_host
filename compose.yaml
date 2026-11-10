@@ -1,6 +1,6 @@
 services:
   pkpass-builder:
-    image: ghcr.io/faolanbig/pkpass-builder-api-host:${IMAGE_TAG:-v1.2.0}
+    image: ghcr.io/faolanbig/pkpass-builder-api-host:${IMAGE_TAG:-v1.3.0}
     ports:
       - "${PORT:-8000}:8000"
     environment:
