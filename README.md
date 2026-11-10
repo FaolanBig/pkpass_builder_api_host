@@ -47,6 +47,30 @@ By default, the service runs in unsigned development mode. Check
 `http://localhost:8000/docs` for the interactive API documentation. The
 standalone OpenAPI specification is available in [openapi.json](openapi.json).
 
+### Kubernetes
+
+The [k8s.yaml](k8s.yaml) manifest creates the `pkpass-gen` namespace, deploys
+the published container, and configures a Service and Traefik Ingress at
+`pkpass-gen.brave-cobra.vcluster.k8s.vector.int`. The Service listens on port
+`8443` for Traefik and forwards traffic to the container on port `8000`.
+
+Create the namespace and API key Secret before applying the manifest:
+
+```sh
+kubectl create namespace pkpass-gen --dry-run=client -o yaml | kubectl apply -f -
+export API_KEY="$(openssl rand -hex 32)"
+kubectl create secret generic pkpass-gen-api \
+  --namespace pkpass-gen \
+  --from-literal=API_KEY="$API_KEY" \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f k8s.yaml
+```
+
+The manifest pins the same `v1.3.0` image used by Docker Compose. Update its
+image tag when deploying a different published version. The default deployment
+uses unsigned development mode; configure Kubernetes Secrets and volumes
+separately if you need signing certificates or Google Wallet credentials.
+
 ## Create a pass
 
 Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
