@@ -35,11 +35,11 @@ spec:
             - name: PKPASS_SIGNING_MODE
               value: "signed"
             - name: PASS_TYPE_IDENTIFIER
-              value: "pass.your.registered.identifier"
+              value: "pass.vector.dbc.wallet"
             - name: TEAM_IDENTIFIER
-              value: "YOURTEAMID"
+              value: "Q5W4CW42QG"
             - name: ORGANIZATION_NAME
-              value: "Your Organization"
+              value: "Vector Informatik GmbH"
             - name: PASS_CERTIFICATE_PATH
               value: /run/secrets/pass-certificate.pem
             - name: PASS_PRIVATE_KEY_PATH
