@@ -32,6 +32,24 @@ spec:
                 secretKeyRef:
                   name: pkpass-gen-api
                   key: API_KEY
+            - name: PKPASS_SIGNING_MODE
+              value: "signed"
+            - name: PASS_TYPE_IDENTIFIER
+              value: "pass.your.registered.identifier"
+            - name: TEAM_IDENTIFIER
+              value: "YOURTEAMID"
+            - name: ORGANIZATION_NAME
+              value: "Your Organization"
+            - name: PASS_CERTIFICATE_PATH
+              value: /run/secrets/pass-certificate.pem
+            - name: PASS_PRIVATE_KEY_PATH
+              value: /run/secrets/pass-private-key.pem
+            - name: APPLE_WWDR_CERTIFICATE_PATH
+              value: /run/secrets/wwdr.pem
+          volumeMounts:
+            - name: signing-files
+              mountPath: /run/secrets
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /health
@@ -53,6 +71,10 @@ spec:
             limits:
               cpu: "1"
               memory: 512Mi
+      volumes:
+        - name: signing-files
+          secret:
+            secretName: pkpass-signing
 ---
 apiVersion: v1
 kind: Service

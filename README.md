@@ -63,13 +63,41 @@ kubectl create secret generic pkpass-gen-api \
   --namespace pkpass-gen \
   --from-literal=API_KEY="$API_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
+```
+
+For signed Apple passes, prepare the Apple-issued Pass Type ID certificate and
+its matching private key in PEM format, and obtain Apple's WWDR intermediate
+certificate. The CSR used to request the certificate is not needed by the API.
+Create the `pkpass-signing` Secret before applying `k8s.yaml` (or before
+enabling signed mode on an existing deployment):
+
+```sh
+kubectl -n pkpass-gen create secret generic pkpass-signing \
+  --from-file=pass-certificate.pem=/path/to/pass-certificate.pem \
+  --from-file=pass-private-key.pem=/path/to/pass-private-key.pem \
+  --from-file=wwdr.pem=/path/to/wwdr.pem \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Before deploying, replace `PASS_TYPE_IDENTIFIER`, `TEAM_IDENTIFIER`, and
+`ORGANIZATION_NAME` in `k8s.yaml` with the values for your Apple Developer
+account. The deployment mounts the Secret read-only at `/run/secrets` and uses
+signed mode. Keep the private key out of source control; Kubernetes Secret data
+is base64-encoded and should be protected using your cluster's secret-storage
+and access-control practices.
+
+After both Secrets exist and the Apple identifiers are set, apply the
+deployment:
+
+```sh
 kubectl apply -f k8s.yaml
+kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
 The manifest pins the same `v1.3.0` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
-uses unsigned development mode; configure Kubernetes Secrets and volumes
-separately if you need signing certificates or Google Wallet credentials.
+requires the signing Secret described above. Configure Kubernetes Secrets and
+volumes separately if you need Google Wallet credentials.
 
 ## Create a pass
 
