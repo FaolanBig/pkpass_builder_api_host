@@ -14,8 +14,9 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:latest` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.2.0` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
+Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
 The API key is required and is passed to the container through the `API_KEY`
 environment variable. Keep it secret; do not commit it to the repository.
@@ -74,12 +75,60 @@ submitted name, degree, position, email, phone, department, and location. The
 pass front shows the name, position, degree, department, and location; the back
 contains all fields.
 
+## Google Wallet
+
+`POST /passes/google-wallet` returns a JSON response with a Google Wallet
+`saveUrl` and the generated `objectId`. Send the same contact JSON body as for
+the Apple endpoint and include the API key in the `X-API-Key` header. The
+returned link lets the recipient add a Google Wallet Generic Pass; its QR code
+contains the vCard contact data.
+
+Before using this endpoint, set up a Google Wallet issuer, enable the Google
+Wallet API, authorize a Google Cloud service account for the issuer, and create
+an approved Generic Class. Configure:
+
+* `GOOGLE_WALLET_ISSUER_ID`: your numeric Wallet issuer ID.
+* `GOOGLE_WALLET_CLASS_ID`: the full ID of the approved Generic Class, in the
+  form `<issuer-id>.<class-suffix>`.
+* `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON`: path in the container to the service
+  account JSON key file. By default, Compose expects it at
+  `/run/secrets/google-wallet-service-account.json`; mount it in the
+  certificates/secrets directory and keep it out of source control.
+* `GOOGLE_WALLET_ORGANIZATION_NAME`: optional pass title (defaults to
+  `Contact Pass`).
+* `GOOGLE_WALLET_ORIGINS`: optional comma-separated web origins where the
+  save link will be used.
+
+Google Wallet save links contain the pass data and must be kept private. Google
+recommends keeping the signed JWT below 1,800 characters; the endpoint returns
+an error if the generated JWT exceeds that limit.
+
+Example:
+
+```sh
+curl -X POST http://localhost:8000/passes/google-wallet \
+  -H "X-API-Key: $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Ada Lovelace",
+    "academicDegree": "PhD",
+    "jobPosition": "Researcher",
+    "email": "ada@example.org",
+    "phoneNumber": "+1 555 0100",
+    "department": "Computing",
+    "location": "London"
+  }'
+```
+
 ## Signing modes
 
 Set `PKPASS_SIGNING_MODE` to switch modes:
 
 * `unsigned` (default): creates a package for development and inspection.
-  Unsigned packages cannot be installed in Apple Wallet.
+  Unsigned packages cannot be installed in Apple Wallet. When identifiers are
+  unset or empty, the package uses development placeholders for
+  `passTypeIdentifier` and `teamIdentifier`; configure real Apple identifiers
+  and signed mode before creating installable passes.
 * `signed`: signs the package for Apple Wallet. Configure these environment
   variables and provide the files inside the container:
 

@@ -1,0 +1,133 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import jwt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+from app.main import (
+    ContactRequest,
+    GoogleWalletLinkTooLongError,
+    GoogleWalletSaveResponse,
+    build_google_wallet_save_url,
+)
+
+
+class GoogleWalletTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contact = ContactRequest(
+            name="Ada Lovelace",
+            academicDegree="PhD",
+            jobPosition="Researcher",
+            email="ada@example.org",
+            phoneNumber="+1 555 0100",
+            department="Computing",
+            location="London",
+        )
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        self.private_key = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode()
+        self.public_key = key.public_key()
+        credentials_path = Path(self.temp_dir.name) / "service-account.json"
+        credentials_path.write_text(
+            json.dumps(
+                {
+                    "client_email": "wallet-service@example.iam.gserviceaccount.com",
+                    "private_key": self.private_key,
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.environment = patch.dict(
+            "os.environ",
+            {
+                "GOOGLE_WALLET_ISSUER_ID": "123456789",
+                "GOOGLE_WALLET_CLASS_ID": "123456789.contact",
+                "GOOGLE_WALLET_SERVICE_ACCOUNT_JSON": str(credentials_path),
+            },
+            clear=True,
+        )
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
+    def test_builds_signed_google_wallet_link_with_contact_data(self) -> None:
+        save_url, object_id = build_google_wallet_save_url(self.contact)
+        token = save_url.rsplit("/", 1)[-1]
+        claims = jwt.decode(
+            token,
+            self.public_key,
+            algorithms=["RS256"],
+            audience="google",
+        )
+
+        self.assertTrue(save_url.startswith("https://pay.google.com/gp/v/save/"))
+        self.assertLessEqual(len(token), 1800)
+        self.assertEqual(object_id, claims["payload"]["genericObjects"][0]["id"])
+        generic_object = claims["payload"]["genericObjects"][0]
+        self.assertEqual(generic_object["classId"], "123456789.contact")
+        self.assertEqual(
+            generic_object["header"]["defaultValue"]["value"], "Ada Lovelace"
+        )
+        self.assertEqual(
+            generic_object["barcode"]["type"],
+            "QR_CODE",
+        )
+        self.assertIn("BEGIN:VCARD", generic_object["barcode"]["value"])
+        self.assertIn(
+            "Academic Degree: PhD",
+            generic_object["textModulesData"][0]["body"],
+        )
+        for value in (
+            "ada@example.org",
+            "+1 555 0100",
+            "Computing",
+            "London",
+        ):
+            self.assertIn(value, generic_object["textModulesData"][0]["body"])
+        self.assertEqual(
+            generic_object["subheader"]["defaultValue"]["value"],
+            "Researcher",
+        )
+
+    def test_response_serializes_camel_case_field_names(self) -> None:
+        response = GoogleWalletSaveResponse(
+            save_url="https://pay.google.com/gp/v/save/token",
+            object_id="123456789.object",
+        )
+        self.assertEqual(
+            response.model_dump(by_alias=True),
+            {
+                "saveUrl": "https://pay.google.com/gp/v/save/token",
+                "objectId": "123456789.object",
+            },
+        )
+
+    @patch.dict("os.environ", {"GOOGLE_WALLET_CLASS_ID": "other-issuer.contact"})
+    def test_rejects_class_from_different_issuer(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must belong"):
+            build_google_wallet_save_url(self.contact)
+
+    def test_rejects_save_url_over_google_limit(self) -> None:
+        long_contact = ContactRequest(
+            name="N" * 256,
+            academicDegree="D" * 256,
+            jobPosition="P" * 256,
+            email="ada@example.org",
+            phoneNumber="1" * 64,
+            department="A" * 256,
+            location="L" * 256,
+        )
+        with self.assertRaises(GoogleWalletLinkTooLongError):
+            build_google_wallet_save_url(long_contact)
+
+
+if __name__ == "__main__":
+    unittest.main()

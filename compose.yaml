@@ -1,6 +1,6 @@
 services:
   pkpass-builder:
-    image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.1.0
+    image: ghcr.io/faolanbig/pkpass-builder-api-host:${IMAGE_TAG:-v1.2.0}
     ports:
       - "${PORT:-8000}:8000"
     environment:
@@ -12,6 +12,11 @@ services:
       PASS_CERTIFICATE_PATH: "${PASS_CERTIFICATE_PATH:-/run/secrets/pass-certificate.pem}"
       PASS_PRIVATE_KEY_PATH: "${PASS_PRIVATE_KEY_PATH:-/run/secrets/pass-private-key.pem}"
       APPLE_WWDR_CERTIFICATE_PATH: "${APPLE_WWDR_CERTIFICATE_PATH:-/run/secrets/wwdr.pem}"
+      GOOGLE_WALLET_ISSUER_ID: "${GOOGLE_WALLET_ISSUER_ID:-}"
+      GOOGLE_WALLET_CLASS_ID: "${GOOGLE_WALLET_CLASS_ID:-}"
+      GOOGLE_WALLET_SERVICE_ACCOUNT_JSON: "${GOOGLE_WALLET_SERVICE_ACCOUNT_JSON:-/run/secrets/google-wallet-service-account.json}"
+      GOOGLE_WALLET_ORGANIZATION_NAME: "${GOOGLE_WALLET_ORGANIZATION_NAME:-Contact Pass}"
+      GOOGLE_WALLET_ORIGINS: "${GOOGLE_WALLET_ORIGINS:-}"
     volumes:
       - "${CERTIFICATES_DIR:-./certificates}:/run/secrets:ro"
     restart: unless-stopped
