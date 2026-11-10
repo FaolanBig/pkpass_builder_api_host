@@ -232,6 +232,36 @@ def _icon() -> bytes:
     return _png_bytes(image)
 
 
+def _logo_images() -> dict[str, bytes]:
+    logo_path = os.getenv("COMPANY_LOGO_PATH", "").strip()
+    if not logo_path:
+        return {}
+
+    try:
+        with Image.open(logo_path) as source:
+            source.load()
+            logo = source.convert("RGBA")
+    except (OSError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError(
+            "COMPANY_LOGO_PATH must point to a readable image file"
+        ) from error
+
+    width, height = logo.size
+    scale = min(1, 160 / width, 50 / height)
+    base_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+    images = {}
+    for filename, factor in (
+        ("logo.png", 1),
+        ("logo@2x.png", 2),
+        ("logo@3x.png", 3),
+    ):
+        size = (base_size[0] * factor, base_size[1] * factor)
+        images[filename] = _png_bytes(
+            logo.resize(size, Image.Resampling.LANCZOS)
+        )
+    return images
+
+
 def _pass_json(
     contact: ContactRequest,
     serial_number: str,
@@ -392,6 +422,7 @@ def build_pkpass(contact: ContactRequest) -> bytes:
         "icon@2x.png": icon,
         "qr.png": _png_bytes(qr_image),
     }
+    files.update(_logo_images())
 
     archive = BytesIO()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as package:

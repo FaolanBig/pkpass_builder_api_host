@@ -1,8 +1,12 @@
 import json
+import tempfile
 import unittest
 import zipfile
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
+
+from PIL import Image
 
 from app.main import ContactRequest, build_pkpass
 
@@ -19,7 +23,10 @@ class PassGenerationTests(unittest.TestCase):
             location="London",
         )
 
-    @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
+    @patch.dict(
+        "os.environ",
+        {"PKPASS_SIGNING_MODE": "unsigned", "COMPANY_LOGO_PATH": ""},
+    )
     def test_unsigned_package_contains_contact_data_and_qr(self) -> None:
         contents = build_pkpass(self.contact)
         with zipfile.ZipFile(BytesIO(contents)) as package:
@@ -64,6 +71,46 @@ class PassGenerationTests(unittest.TestCase):
             "pass.com.example.contact",
         )
         self.assertEqual(pass_data["teamIdentifier"], "TEAMID1234")
+
+    def test_configured_company_logo_is_added_at_multiple_resolutions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            logo_path = Path(temp_dir) / "company-logo.png"
+            Image.new("RGB", (240, 60), "red").save(logo_path)
+
+            with patch.dict(
+                "os.environ",
+                {
+                    "PKPASS_SIGNING_MODE": "unsigned",
+                    "COMPANY_LOGO_PATH": str(logo_path),
+                },
+            ):
+                contents = build_pkpass(self.contact)
+
+        with zipfile.ZipFile(BytesIO(contents)) as package:
+            self.assertTrue(
+                {"logo.png", "logo@2x.png", "logo@3x.png"}.issubset(
+                    package.namelist()
+                )
+            )
+            for name, expected_size in (
+                ("logo.png", (160, 40)),
+                ("logo@2x.png", (320, 80)),
+                ("logo@3x.png", (480, 120)),
+            ):
+                with self.subTest(logo=name):
+                    with Image.open(BytesIO(package.read(name))) as image:
+                        self.assertEqual(image.size, expected_size)
+
+    @patch.dict(
+        "os.environ",
+        {
+            "PKPASS_SIGNING_MODE": "unsigned",
+            "COMPANY_LOGO_PATH": "/missing/company-logo.png",
+        },
+    )
+    def test_invalid_company_logo_path_is_reported(self) -> None:
+        with self.assertRaisesRegex(ValueError, "COMPANY_LOGO_PATH"):
+            build_pkpass(self.contact)
 
     @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "invalid"})
     def test_unknown_signing_mode_is_rejected(self) -> None:
