@@ -99,6 +99,33 @@ image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
 
+## Workato custom connector
+
+Copy [workato/connector.rb](workato/connector.rb) into a Workato Connector SDK
+custom connector and create a connection with the API base URL (the HTTPS
+ingress origin, without `/passes`) and the `API_KEY` configured on the service.
+Keep the key in Workato's password field. The connector uses the `X-API-Key`
+header for requests.
+
+The connector enables Workato's on-prem agent (OPA) support. For a private
+ingress, configure an OPA group and select it under **Connection type** when
+creating the connection. The agent must be able to resolve and reach the
+ingress and validate its TLS certificate. On-prem connectivity depends on your
+Workato plan; see the [Workato OPA connector guide](https://docs.workato.com/en/developing-connectors/sdk/guides/authentication/on-prem).
+
+The connection test calls the unauthenticated `/health` endpoint. A successful
+test confirms reachability, **not** that the API key or signing configuration
+is valid. Run a pass-creation action to verify those settings.
+
+Both actions require all seven contact fields. **Create Apple Wallet pass**
+returns `content_base64`, `filename`, and `content_type`; decode the Base64
+content to binary when saving or attaching `contact.pkpass`. It does not return
+a save URL. **Create Google Wallet save link** returns `saveUrl` and `objectId`;
+it requires the Google Wallet server configuration below. The URL includes
+contact information, so handle it as private data. API errors, including 401,
+422, and 500 responses, fail the action rather than producing a pass.
+Run the local connector contract tests with `ruby workato/test_connector.rb`.
+
 ## Create a pass
 
 Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
