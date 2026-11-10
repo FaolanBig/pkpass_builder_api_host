@@ -74,9 +74,14 @@ metadata:
   name: pkpass-gen
   namespace: pkpass-gen
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: pkpass
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - pkpass-gen.brave-cobra.vcluster.k8s.vector.int
+      secretName: pkpass-gen-tls
   rules:
     - host: pkpass-gen.brave-cobra.vcluster.k8s.vector.int
       http:
