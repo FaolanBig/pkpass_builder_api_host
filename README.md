@@ -81,7 +81,7 @@ kubectl -n pkpass-gen create secret generic pkpass-signing \
 
 Before deploying, replace `PASS_TYPE_IDENTIFIER`, `TEAM_IDENTIFIER`, and
 `ORGANIZATION_NAME` in `k8s.yaml` with the values for your Apple Developer
-account. The deployment mounts the Secret read-only at `/run/secrets` and uses
+account. The deployment mounts the Secret read-only at `/etc/pkpass-secrets` and uses
 signed mode. Keep the private key out of source control; Kubernetes Secret data
 is base64-encoded and should be protected using your cluster's secret-storage
 and access-control practices.

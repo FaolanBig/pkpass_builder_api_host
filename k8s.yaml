@@ -41,14 +41,14 @@ spec:
             - name: ORGANIZATION_NAME
               value: "Vector Informatik GmbH"
             - name: PASS_CERTIFICATE_PATH
-              value: /run/secrets/pass-certificate.pem
+              value: /etc/pkpass-secrets/pass-certificate.pem
             - name: PASS_PRIVATE_KEY_PATH
-              value: /run/secrets/pass-private-key.pem
+              value: /etc/pkpass-secrets/pass-private-key.pem
             - name: APPLE_WWDR_CERTIFICATE_PATH
-              value: /run/secrets/wwdr.pem
+              value: /etc/pkpass-secrets/wwdr.pem
           volumeMounts:
             - name: signing-files
-              mountPath: /run/secrets
+              mountPath: /etc/pkpass-secrets
               readOnly: true
           readinessProbe:
             httpGet:
