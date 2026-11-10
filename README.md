@@ -125,7 +125,10 @@ curl -X POST http://localhost:8000/passes/google-wallet \
 Set `PKPASS_SIGNING_MODE` to switch modes:
 
 * `unsigned` (default): creates a package for development and inspection.
-  Unsigned packages cannot be installed in Apple Wallet.
+  Unsigned packages cannot be installed in Apple Wallet. When identifiers are
+  unset or empty, the package uses development placeholders for
+  `passTypeIdentifier` and `teamIdentifier`; configure real Apple identifiers
+  and signed mode before creating installable passes.
 * `signed`: signs the package for Apple Wallet. Configure these environment
   variables and provide the files inside the container:
 

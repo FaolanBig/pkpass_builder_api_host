@@ -82,7 +82,7 @@ def verify_api_key(api_key: str | None = Depends(api_key_header)) -> None:
 
 
 def _required_setting(name: str) -> str:
-    value = os.getenv(name)
+    value = os.getenv(name, "").strip()
     if not value:
         raise ValueError(f"{name} must be set when signed mode is enabled")
     return value
@@ -358,10 +358,11 @@ def build_pkpass(contact: ContactRequest) -> bytes:
         team_identifier = _required_setting("TEAM_IDENTIFIER")
         organization_name = _required_setting("ORGANIZATION_NAME")
     else:
-        pass_type_identifier = os.getenv(
-            "PASS_TYPE_IDENTIFIER", "pass.com.example.contact"
+        pass_type_identifier = (
+            os.getenv("PASS_TYPE_IDENTIFIER", "").strip()
+            or "pass.com.example.contact"
         )
-        team_identifier = os.getenv("TEAM_IDENTIFIER", "TEAMID1234")
+        team_identifier = os.getenv("TEAM_IDENTIFIER", "").strip() or "TEAMID1234"
         organization_name = os.getenv("ORGANIZATION_NAME", "Contact Pass")
 
     serial_number = str(uuid.uuid4())
