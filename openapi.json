@@ -37,7 +37,7 @@
         "post": {
           "operationId": "createGoogleWalletPass",
           "summary": "Create a Google Wallet save link",
-          "description": "Creates a signed Google Wallet save URL for a Generic Pass. A Google Wallet issuer, authorized service account, and pre-created approved Generic Class are required. The signed URL contains the contact data and should be treated as private. Google recommends keeping the encoded JWT below 1,800 characters.",
+          "description": "Creates a signed Google Wallet save URL for a Generic Pass. A Google Wallet issuer, authorized service account, and pre-created approved Generic Class are required. The optional profilePicture field is ignored by Google Wallet. The signed URL contains the contact data and should be treated as private. Google recommends keeping the encoded JWT below 1,800 characters.",
           "security": [
             {
               "ApiKeyAuth": []
@@ -117,7 +117,7 @@
       "post": {
         "operationId": "createContactPass",
         "summary": "Create a contact pass",
-        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
+        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. Optionally, `profilePicture` may contain raw Base64-encoded PNG, JPEG, or WebP image bytes (up to 5 MB; each dimension at most 4096 pixels); it is cropped to a square and displayed as a thumbnail on the pass front. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -265,6 +265,21 @@
             "minLength": 1,
             "maxLength": 256,
             "description": "Contact's work location."
+          },
+          "profilePicture": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 6666668,
+                "format": "base64",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profilepicture",
+            "description": "Optional raw Base64-encoded PNG, JPEG, or WebP image bytes, used for the Apple Wallet pass thumbnail. Also accepts `profile_picture`; ignored by Google Wallet."
           }
         }
       },

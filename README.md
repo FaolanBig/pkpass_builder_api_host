@@ -152,8 +152,17 @@ The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
 submitted name, degree, position, email, phone, department, and location. The
 pass front shows the name, position, degree, department, and location; the back
-contains all fields. An optional company logo can be included in every Apple
-pass by setting `COMPANY_LOGO_PATH` to an image file available to the service.
+contains all fields. An optional profile picture can be sent in the Apple pass
+request as `profilePicture`, containing the raw Base64-encoded bytes of a PNG,
+JPEG, or WebP image (up to 5 MB, with neither dimension over 4096 pixels). The
+service crops it to a square and packages Apple Wallet `thumbnail` images for
+display on the pass front. For example, add
+`"profilePicture": "<base64-encoded-image>"` to the JSON body. The
+`profile_picture` snake_case spelling is also accepted. This field is ignored
+by the Google Wallet endpoint.
+
+An optional company logo can be included in every Apple pass by setting
+`COMPANY_LOGO_PATH` to an image file available to the service.
 For Docker Compose, put the image in the configured certificates directory
 (default `./certificates`) and set, for example,
 `COMPANY_LOGO_PATH=/run/secrets/company-logo.png`. The service packages
