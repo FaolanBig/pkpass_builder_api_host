@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pkpass-gen
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pkpass-gen
+  namespace: pkpass-gen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pkpass-gen
+  template:
+    metadata:
+      labels:
+        app: pkpass-gen
+    spec:
+      containers:
+        - name: pkpass-gen
+          image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pkpass-gen-api
+                  key: API_KEY
+            - name: PKPASS_SIGNING_MODE
+              value: "signed"
+            - name: PASS_TYPE_IDENTIFIER
+              value: "pass.company.example"
+            - name: TEAM_IDENTIFIER
+              value: "A1B2C3D4E5"
+            - name: ORGANIZATION_NAME
+              value: "Organization Name"
+            - name: PASS_CERTIFICATE_PATH
+              value: /etc/pkpass-secrets/pass-certificate.pem
+            - name: PASS_PRIVATE_KEY_PATH
+              value: /etc/pkpass-secrets/pass-private-key.pem
+            - name: APPLE_WWDR_CERTIFICATE_PATH
+              value: /etc/pkpass-secrets/wwdr.pem
+          volumeMounts:
+            - name: signing-files
+              mountPath: /etc/pkpass-secrets
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      volumes:
+        - name: signing-files
+          secret:
+            secretName: pkpass-signing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pkpass-gen
+  namespace: pkpass-gen
+spec:
+  selector:
+    app: pkpass-gen
+  ports:
+    - name: http
+      port: 8443
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pkpass-gen
+  namespace: pkpass-gen
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - application-name.cluster-name.vcluster.k8s.company.int
+      secretName: pkpass-gen-tls
+  rules:
+    - host: application-name.cluster-name.vcluster.k8s.company.int
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pkpass-gen
+                port:
+                  number: 8443
