@@ -16,8 +16,9 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
-from PIL import Image, ImageDraw, ImageFont
+from pydantic import AliasChoices, Base64Bytes, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import field_validator
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 class SigningMode(str, Enum):
@@ -53,6 +54,37 @@ class ContactRequest(BaseModel):
     )
     department: str = Field(min_length=1, max_length=256)
     location: str = Field(min_length=1, max_length=256)
+    profile_picture: Base64Bytes | None = Field(
+        default=None,
+        max_length=6_666_668,
+        validation_alias=AliasChoices("profilePicture", "profile_picture"),
+    )
+
+    @field_validator("profile_picture")
+    @classmethod
+    def validate_profile_picture(cls, image_bytes: bytes | None) -> bytes | None:
+        if image_bytes is None:
+            return None
+
+        if len(image_bytes) > 5_000_000:
+            raise ValueError("profilePicture must not exceed 5 MB")
+
+        try:
+            with Image.open(BytesIO(image_bytes)) as image:
+                if image.format not in {"PNG", "JPEG", "WEBP"}:
+                    raise ValueError(
+                        "profilePicture must be a PNG, JPEG, or WebP image"
+                    )
+                width, height = image.size
+                if width > 4096 or height > 4096:
+                    raise ValueError(
+                        "profilePicture dimensions must not exceed 4096 by 4096"
+                    )
+                image.verify()
+        except (OSError, Image.DecompressionBombError) as error:
+            raise ValueError("profilePicture must be a valid image") from error
+
+        return image_bytes
 
 
 class GoogleWalletSaveResponse(BaseModel):
@@ -262,6 +294,31 @@ def _logo_images() -> dict[str, bytes]:
     return images
 
 
+def _profile_picture_images(contact: ContactRequest) -> dict[str, bytes]:
+    if contact.profile_picture is None:
+        return {}
+
+    with Image.open(BytesIO(contact.profile_picture)) as source:
+        source.load()
+        profile_picture = ImageOps.fit(
+            ImageOps.exif_transpose(source).convert("RGBA"),
+            (90, 90),
+            method=Image.Resampling.LANCZOS,
+        )
+
+    images = {}
+    for filename, factor in (
+        ("thumbnail.png", 1),
+        ("thumbnail@2x.png", 2),
+        ("thumbnail@3x.png", 3),
+    ):
+        size = (90 * factor, 90 * factor)
+        images[filename] = _png_bytes(
+            profile_picture.resize(size, Image.Resampling.LANCZOS)
+        )
+    return images
+
+
 def _pass_json(
     contact: ContactRequest,
     serial_number: str,
@@ -423,6 +480,7 @@ def build_pkpass(contact: ContactRequest) -> bytes:
         "qr.png": _png_bytes(qr_image),
     }
     files.update(_logo_images())
+    files.update(_profile_picture_images(contact))
 
     archive = BytesIO()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as package:
