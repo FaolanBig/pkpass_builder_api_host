@@ -35,11 +35,11 @@ spec:
             - name: PKPASS_SIGNING_MODE
               value: "signed"
             - name: PASS_TYPE_IDENTIFIER
-              value: "pass.vector.dbc.wallet"
+              value: "pass.company.example"
             - name: TEAM_IDENTIFIER
-              value: "Q5W4CW42QG"
+              value: "A1B2C3D4E5"
             - name: ORGANIZATION_NAME
-              value: "Vector Informatik GmbH"
+              value: "Organization Name"
             - name: PASS_CERTIFICATE_PATH
               value: /etc/pkpass-secrets/pass-certificate.pem
             - name: PASS_PRIVATE_KEY_PATH
@@ -102,10 +102,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - pkpass-gen.brave-cobra.vcluster.k8s.vector.int
+        - application-name.cluster-name.vcluster.k8s.company.int
       secretName: pkpass-gen-tls
   rules:
-    - host: pkpass-gen.brave-cobra.vcluster.k8s.vector.int
+    - host: application-name.cluster-name.vcluster.k8s.company.int
       http:
         paths:
           - path: /
