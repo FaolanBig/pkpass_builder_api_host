@@ -120,6 +120,27 @@ def _required_setting(name: str) -> str:
     return value
 
 
+def _configured_color(name: str, default: str) -> tuple[int, int, int]:
+    value = os.getenv(name, default).strip().removeprefix("#")
+    if len(value) != 6 or any(
+        character not in "0123456789abcdefABCDEF" for character in value
+    ):
+        raise ValueError(f"{name} must be a 6-digit hex color (for example #17324d)")
+    return (
+        int(value[0:2], 16),
+        int(value[2:4], 16),
+        int(value[4:6], 16),
+    )
+
+
+def _hex_color(color: tuple[int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*color)
+
+
+def _apple_color(color: tuple[int, int, int]) -> str:
+    return "rgb({}, {}, {})".format(*color)
+
+
 def _vcard_escape(value: str) -> str:
     return (
         value.replace("\\", "\\\\")
@@ -194,7 +215,9 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
         "cardTitle": _google_wallet_localized_string(organization_name),
         "header": _google_wallet_localized_string(contact.name),
         "subheader": _google_wallet_localized_string(contact.job_position),
-        "hexBackgroundColor": "#17324d",
+        "hexBackgroundColor": _hex_color(
+            _configured_color("GOOGLE_WALLET_BACKGROUND_COLOR", "#17324d")
+        ),
         "textModulesData": [
             {
                 "header": "Contact details",
@@ -253,14 +276,23 @@ def _png_bytes(image: Image.Image) -> bytes:
 
 
 def _icon() -> bytes:
-    image = Image.new("RGB", (58, 58), "#17324d")
+    image = Image.new(
+        "RGB",
+        (58, 58),
+        _configured_color("ICON_BACKGROUND_COLOR", "#17324d"),
+    )
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default()
     text = "ID"
     bounds = draw.textbbox((0, 0), text, font=font)
     x = (58 - (bounds[2] - bounds[0])) // 2
     y = (58 - (bounds[3] - bounds[1])) // 2 - bounds[1]
-    draw.text((x, y), text, fill="white", font=font)
+    draw.text(
+        (x, y),
+        text,
+        fill=_configured_color("ICON_FOREGROUND_COLOR", "#ffffff"),
+        font=font,
+    )
     return _png_bytes(image)
 
 
@@ -334,9 +366,15 @@ def _pass_json(
         "teamIdentifier": team_identifier,
         "organizationName": organization_name,
         "description": "Contact pass",
-        "foregroundColor": "rgb(255, 255, 255)",
-        "backgroundColor": "rgb(23, 50, 77)",
-        "labelColor": "rgb(220, 230, 240)",
+        "foregroundColor": _apple_color(
+            _configured_color("PKPASS_FOREGROUND_COLOR", "#ffffff")
+        ),
+        "backgroundColor": _apple_color(
+            _configured_color("PKPASS_BACKGROUND_COLOR", "#17324d")
+        ),
+        "labelColor": _apple_color(
+            _configured_color("PKPASS_LABEL_COLOR", "#dce6f0")
+        ),
         "generic": {
             "primaryFields": [{"key": "name", "label": "NAME", "value": contact.name}],
             "secondaryFields": [
@@ -458,7 +496,10 @@ def build_pkpass(contact: ContactRequest) -> bytes:
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(vcard)
     qr.make(fit=True)
-    qr_image = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_image = qr.make_image(
+        fill_color=_configured_color("QR_FOREGROUND_COLOR", "#000000"),
+        back_color=_configured_color("QR_BACKGROUND_COLOR", "#ffffff"),
+    ).convert("RGB")
 
     icon = _icon()
     icon_image = Image.open(BytesIO(icon))
