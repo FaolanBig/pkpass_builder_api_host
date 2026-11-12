@@ -426,9 +426,7 @@ def _pass_json(
     address = "\n".join(_address_lines(contact))
     homepage = _company_homepage()
     show_department = _show_department()
-    header_fields = [
-        {"key": "position", "label": "POSITION", "value": contact.job_position}
-    ]
+    header_fields = []
     if show_department:
         header_fields.append(
             {"key": "department", "label": "DEPARTMENT", "value": contact.department}
@@ -442,7 +440,8 @@ def _pass_json(
         },
     ]
     auxiliary_fields = [
-        {"key": "country", "label": "COUNTRY", "value": contact.country}
+        {"key": "position", "label": "POSITION", "value": contact.job_position},
+        {"key": "country", "label": "COUNTRY", "value": contact.country},
     ]
     if homepage:
         auxiliary_fields.append(
