@@ -51,13 +51,17 @@
                   "$ref": "#/components/schemas/ContactRequest"
                 },
                 "example": {
-                  "name": "Ada Lovelace",
+                  "givenName": "Ada",
+                  "surname": "Lovelace",
                   "academicDegree": "PhD",
                   "jobPosition": "Researcher",
                   "email": "ada@example.org",
                   "phoneNumber": "+1 555 0100",
                   "department": "Computing",
-                  "location": "London"
+                  "street": "1 Main St",
+                  "postalCode": "SW1A 1AA",
+                  "city": "London",
+                  "country": "UK"
                 }
               }
             }
@@ -131,13 +135,17 @@
                 "$ref": "#/components/schemas/ContactRequest"
               },
               "example": {
-                "name": "Ada Lovelace",
+                "givenName": "Ada",
+                "surname": "Lovelace",
                 "academicDegree": "PhD",
                 "jobPosition": "Researcher",
                 "email": "ada@example.org",
                 "phoneNumber": "+1 555 0100",
                 "department": "Computing",
-                "location": "London"
+                "street": "1 Main St",
+                  "postalCode": "SW1A 1AA",
+                  "city": "London",
+                  "country": "UK"
               }
             }
           }
@@ -216,20 +224,30 @@
       "ContactRequest": {
         "type": "object",
         "required": [
-          "name",
+          "givenName",
+          "surname",
           "academicDegree",
           "jobPosition",
           "email",
           "phoneNumber",
           "department",
-          "location"
+          "street",
+          "postalCode",
+          "city",
+          "country"
         ],
         "properties": {
-          "name": {
+          "givenName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "description": "Contact's full name. Also accepts `Name`."
+            "description": "Contact's given (first) name. Also accepts `given_name`, `Given Name`, `firstName` or `first_name`."
+          },
+          "surname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Contact's surname. Also accepts `Surname`, `lastName` or `last_name`."
           },
           "academicDegree": {
             "type": "string",
@@ -260,11 +278,29 @@
             "maxLength": 256,
             "description": "Contact's department."
           },
-          "location": {
+          "street": {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "description": "Contact's work location."
+            "description": "Street of the company site."
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "Postal code of the company site. Also accepts `postal_code`."
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "City of the company site."
+          },
+          "country": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Country of the company site."
           },
           "profilePicture": {
             "anyOf": [

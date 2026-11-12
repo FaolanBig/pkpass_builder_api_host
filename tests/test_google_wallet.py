@@ -19,13 +19,17 @@ from app.main import (
 class GoogleWalletTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contact = ContactRequest(
-            name="Ada Lovelace",
+            givenName="Ada",
+            surname="Lovelace",
             academicDegree="PhD",
             jobPosition="Researcher",
             email="ada@example.org",
             phoneNumber="+1 555 0100",
             department="Computing",
-            location="London",
+            street="1 Main St",
+            postalCode="SW1A 1AA",
+            city="London",
+            country="UK",
         )
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
@@ -74,24 +78,17 @@ class GoogleWalletTests(unittest.TestCase):
         generic_object = claims["payload"]["genericObjects"][0]
         self.assertEqual(generic_object["classId"], "123456789.contact")
         self.assertEqual(
-            generic_object["header"]["defaultValue"]["value"], "Ada Lovelace"
+            generic_object["header"]["defaultValue"]["value"], "PhD Ada Lovelace"
         )
         self.assertEqual(
             generic_object["barcode"]["type"],
             "QR_CODE",
         )
         self.assertIn("BEGIN:VCARD", generic_object["barcode"]["value"])
-        self.assertIn(
-            "Academic Degree: PhD",
-            generic_object["textModulesData"][0]["body"],
-        )
-        for value in (
-            "ada@example.org",
-            "+1 555 0100",
-            "Computing",
-            "London",
-        ):
-            self.assertIn(value, generic_object["textModulesData"][0]["body"])
+        body = generic_object["textModulesData"][0]["body"]
+        for value in ("ada@example.org", "+1 555 0100", "1 Main St", "London"):
+            self.assertIn(value, body)
+        self.assertNotIn("Computing", body)
         self.assertEqual(
             generic_object["subheader"]["defaultValue"]["value"],
             "Researcher",
@@ -131,13 +128,17 @@ class GoogleWalletTests(unittest.TestCase):
 
     def test_rejects_save_url_over_google_limit(self) -> None:
         long_contact = ContactRequest(
-            name="N" * 256,
+            givenName="N" * 256,
+            surname="S" * 256,
             academicDegree="D" * 256,
             jobPosition="P" * 256,
             email="ada@example.org",
             phoneNumber="1" * 64,
             department="A" * 256,
-            location="L" * 256,
+            street="S" * 256,
+            postalCode="1" * 32,
+            city="C" * 256,
+            country="K" * 256,
         )
         with self.assertRaises(GoogleWalletLinkTooLongError):
             build_google_wallet_save_url(long_contact)

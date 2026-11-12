@@ -29,10 +29,17 @@ class SigningMode(str, Enum):
 class ContactRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str = Field(
+    given_name: str = Field(
         min_length=1,
         max_length=256,
-        validation_alias=AliasChoices("name", "Name"),
+        validation_alias=AliasChoices(
+            "givenName", "given_name", "Given Name", "firstName", "first_name"
+        ),
+    )
+    surname: str = Field(
+        min_length=1,
+        max_length=256,
+        validation_alias=AliasChoices("surname", "Surname", "lastName", "last_name"),
     )
     academic_degree: str = Field(
         min_length=1,
@@ -53,7 +60,14 @@ class ContactRequest(BaseModel):
         validation_alias=AliasChoices("phoneNumber", "phone_number", "Phone Number"),
     )
     department: str = Field(min_length=1, max_length=256)
-    location: str = Field(min_length=1, max_length=256)
+    street: str = Field(min_length=1, max_length=256)
+    postal_code: str = Field(
+        min_length=1,
+        max_length=32,
+        validation_alias=AliasChoices("postalCode", "postal_code", "postal-code"),
+    )
+    city: str = Field(min_length=1, max_length=256)
+    country: str = Field(min_length=1, max_length=256)
     profile_picture: Base64Bytes | None = Field(
         default=None,
         max_length=6_666_668,
@@ -152,21 +166,63 @@ def _vcard_escape(value: str) -> str:
     )
 
 
-def _vcard(contact: ContactRequest) -> str:
+def _academic_degree(contact: ContactRequest) -> str | None:
+    degree = contact.academic_degree.strip()
+    return None if not degree or degree.upper() == "N/A" else degree
+
+
+def _display_name(contact: ContactRequest) -> str:
+    degree = _academic_degree(contact)
+    full_name = f"{contact.given_name} {contact.surname}"
+    return f"{degree} {full_name}" if degree else full_name
+
+
+def _show_department() -> bool:
+    return os.getenv("SHOW_DEPARTMENT", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _company_homepage() -> str | None:
+    return os.getenv("COMPANY_HOMEPAGE", "").strip() or None
+
+
+def _address_lines(contact: ContactRequest) -> list[str]:
+    return [
+        contact.street,
+        f"{contact.postal_code} {contact.city}",
+        contact.country,
+    ]
+
+
+def _vcard(contact: ContactRequest, company: str) -> str:
     email = str(contact.email)
+    degree = _academic_degree(contact)
+    org = _vcard_escape(company)
+    if _show_department():
+        org += f";{_vcard_escape(contact.department)}"
     lines = [
         "BEGIN:VCARD",
         "VERSION:3.0",
-        f"FN:{_vcard_escape(contact.name)}",
-        f"N:{_vcard_escape(contact.name)};;;;",
+        f"FN:{_vcard_escape(_display_name(contact))}",
+        "N:{};{};;{};".format(
+            _vcard_escape(contact.surname),
+            _vcard_escape(contact.given_name),
+            _vcard_escape(degree or ""),
+        ),
         f"TITLE:{_vcard_escape(contact.job_position)}",
-        f"ORG:{_vcard_escape(contact.department)}",
+        f"ORG:{org}",
         f"EMAIL;TYPE=WORK:{_vcard_escape(email)}",
         f"TEL;TYPE=WORK,VOICE:{_vcard_escape(contact.phone_number)}",
-        f"ADR;TYPE=WORK:;;{_vcard_escape(contact.location)};;;;",
-        f"NOTE:Academic Degree: {_vcard_escape(contact.academic_degree)}",
-        "END:VCARD",
+        "ADR;TYPE=WORK:;;{};{};;{};{}".format(
+            _vcard_escape(contact.street),
+            _vcard_escape(contact.city),
+            _vcard_escape(contact.postal_code),
+            _vcard_escape(contact.country),
+        ),
     ]
+    homepage = _company_homepage()
+    if homepage:
+        lines.append(f"URL:{_vcard_escape(homepage)}")
+    lines.append("END:VCARD")
     return "\r\n".join(lines) + "\r\n"
 
 
@@ -206,14 +262,14 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
         )
 
     object_id = f"{issuer_id}.{uuid.uuid4()}"
-    vcard = _vcard(contact)
     organization_name = os.getenv("GOOGLE_WALLET_ORGANIZATION_NAME", "Contact Pass")
+    vcard = _vcard(contact, organization_name)
     generic_object = {
         "id": object_id,
         "classId": class_id,
         "state": "ACTIVE",
         "cardTitle": _google_wallet_localized_string(organization_name),
-        "header": _google_wallet_localized_string(contact.name),
+        "header": _google_wallet_localized_string(_display_name(contact)),
         "subheader": _google_wallet_localized_string(contact.job_position),
         "hexBackgroundColor": _hex_color(
             _configured_color("GOOGLE_WALLET_BACKGROUND_COLOR", "#17324d")
@@ -222,13 +278,21 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
             {
                 "header": "Contact details",
                 "body": "\n".join(
-                    (
-                        f"Academic Degree: {contact.academic_degree}",
+                    [
                         f"Email: {contact.email}",
                         f"Phone: {contact.phone_number}",
-                        f"Department: {contact.department}",
-                        f"Location: {contact.location}",
-                    )
+                        *(
+                            [f"Department: {contact.department}"]
+                            if _show_department()
+                            else []
+                        ),
+                        "Address: " + ", ".join(_address_lines(contact)),
+                        *(
+                            [f"Website: {_company_homepage()}"]
+                            if _company_homepage()
+                            else []
+                        ),
+                    ]
                 ),
             }
         ],
@@ -359,6 +423,42 @@ def _pass_json(
     team_identifier: str,
     organization_name: str,
 ) -> dict:
+    address = "\n".join(_address_lines(contact))
+    homepage = _company_homepage()
+    show_department = _show_department()
+    header_fields = []
+    if show_department:
+        header_fields.append(
+            {"key": "department", "label": "DEPARTMENT", "value": contact.department}
+        )
+    secondary_fields = [
+        {"key": "street", "label": "STREET", "value": contact.street},
+        {
+            "key": "city",
+            "label": "CITY",
+            "value": f"{contact.postal_code} {contact.city}",
+        },
+    ]
+    auxiliary_fields = [
+        {"key": "position", "label": "POSITION", "value": contact.job_position},
+        {"key": "country", "label": "COUNTRY", "value": contact.country},
+    ]
+    if homepage:
+        auxiliary_fields.append(
+            {"key": "homepage", "label": "WEBSITE", "value": homepage}
+        )
+    back_fields = [
+        {"key": "email", "label": "Email", "value": str(contact.email)},
+        {"key": "phone", "label": "Phone", "value": contact.phone_number},
+        {"key": "position", "label": "Job Position", "value": contact.job_position},
+    ]
+    if show_department:
+        back_fields.append(
+            {"key": "department", "label": "Department", "value": contact.department}
+        )
+    back_fields.append({"key": "address", "label": "Address", "value": address})
+    if homepage:
+        back_fields.append({"key": "homepage", "label": "Website", "value": homepage})
     return {
         "formatVersion": 1,
         "passTypeIdentifier": pass_type_identifier,
@@ -376,51 +476,13 @@ def _pass_json(
             _configured_color("PKPASS_LABEL_COLOR", "#dce6f0")
         ),
         "generic": {
-            "primaryFields": [{"key": "name", "label": "NAME", "value": contact.name}],
-            "secondaryFields": [
-                {
-                    "key": "position",
-                    "label": "POSITION",
-                    "value": contact.job_position,
-                }
+            "primaryFields": [
+                {"key": "name", "label": "NAME", "value": _display_name(contact)}
             ],
-            "auxiliaryFields": [
-                {
-                    "key": "degree",
-                    "label": "DEGREE",
-                    "value": contact.academic_degree,
-                },
-                {
-                    "key": "department",
-                    "label": "DEPARTMENT",
-                    "value": contact.department,
-                },
-                {
-                    "key": "location",
-                    "label": "LOCATION",
-                    "value": contact.location,
-                },
-            ],
-            "backFields": [
-                {"key": "email", "label": "Email", "value": str(contact.email)},
-                {"key": "phone", "label": "Phone", "value": contact.phone_number},
-                {
-                    "key": "degree",
-                    "label": "Academic Degree",
-                    "value": contact.academic_degree,
-                },
-                {
-                    "key": "position",
-                    "label": "Job Position",
-                    "value": contact.job_position,
-                },
-                {
-                    "key": "department",
-                    "label": "Department",
-                    "value": contact.department,
-                },
-                {"key": "location", "label": "Location", "value": contact.location},
-            ],
+            "headerFields": header_fields,
+            "secondaryFields": secondary_fields,
+            "auxiliaryFields": auxiliary_fields,
+            "backFields": back_fields,
         },
         "barcodes": [
             {
@@ -491,7 +553,7 @@ def build_pkpass(contact: ContactRequest) -> bytes:
         organization_name = os.getenv("ORGANIZATION_NAME", "Contact Pass")
 
     serial_number = str(uuid.uuid4())
-    vcard = _vcard(contact)
+    vcard = _vcard(contact, organization_name)
 
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(vcard)

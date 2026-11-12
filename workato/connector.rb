@@ -37,13 +37,17 @@
     contact: {
       fields: lambda do |_connection, _config_fields|
         [
-          { name: 'name', label: 'Name', optional: false },
+          { name: 'givenName', label: 'Given name', optional: false },
+          { name: 'surname', label: 'Surname', optional: false },
           { name: 'academicDegree', label: 'Academic degree', optional: false },
           { name: 'jobPosition', label: 'Job position', optional: false },
           { name: 'email', label: 'Email', optional: false },
           { name: 'phoneNumber', label: 'Phone number', optional: false },
           { name: 'department', label: 'Department', optional: false },
-          { name: 'location', label: 'Location', optional: false },
+          { name: 'street', label: 'Street', optional: false },
+          { name: 'postalCode', label: 'Postal code', optional: false },
+          { name: 'city', label: 'City', optional: false },
+          { name: 'country', label: 'Country', optional: false },
           {
             name: 'profilePicture',
             label: 'Profile picture (Base64)',

@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: pkpass-gen
-          image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.4.0-rc
+          image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.7.3
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -40,6 +40,10 @@ spec:
               value: "A1B2C3D4E5"
             - name: ORGANIZATION_NAME
               value: "Organization Name"
+            - name: SHOW_DEPARTMENT
+              value: "false"
+            - name: COMPANY_HOMEPAGE
+              value: "https://www.company.example"
             - name: PKPASS_FOREGROUND_COLOR
               value: "#ffffff"
             - name: PKPASS_BACKGROUND_COLOR
