@@ -55,6 +55,45 @@ class PassGenerationTests(unittest.TestCase):
             self.assertIn("BEGIN:VCARD", pass_data["barcodes"][0]["message"])
             self.assertGreater(len(package.read("qr.png")), 0)
 
+    def test_configured_colors_are_used_in_pass_icon_and_qr(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "PKPASS_SIGNING_MODE": "unsigned",
+                "PKPASS_FOREGROUND_COLOR": "#123456",
+                "PKPASS_BACKGROUND_COLOR": "abcdef",
+                "PKPASS_LABEL_COLOR": "#fedcba",
+                "ICON_BACKGROUND_COLOR": "#112233",
+                "ICON_FOREGROUND_COLOR": "#445566",
+                "QR_FOREGROUND_COLOR": "#778899",
+                "QR_BACKGROUND_COLOR": "#aabbcc",
+            },
+        ):
+            contents = build_pkpass(self.contact)
+
+        with zipfile.ZipFile(BytesIO(contents)) as package:
+            pass_data = json.loads(package.read("pass.json"))
+            self.assertEqual(pass_data["foregroundColor"], "rgb(18, 52, 86)")
+            self.assertEqual(pass_data["backgroundColor"], "rgb(171, 205, 239)")
+            self.assertEqual(pass_data["labelColor"], "rgb(254, 220, 186)")
+            with Image.open(BytesIO(package.read("icon@2x.png"))) as image:
+                self.assertEqual(image.getpixel((0, 0)), (17, 34, 51))
+            with Image.open(BytesIO(package.read("qr.png"))) as image:
+                colors = set(image.get_flattened_data())
+                self.assertIn((119, 136, 153), colors)
+                self.assertIn((170, 187, 204), colors)
+
+    @patch.dict(
+        "os.environ",
+        {
+            "PKPASS_SIGNING_MODE": "unsigned",
+            "PKPASS_BACKGROUND_COLOR": "blue",
+        },
+    )
+    def test_invalid_configured_color_is_reported(self) -> None:
+        with self.assertRaisesRegex(ValueError, "PKPASS_BACKGROUND_COLOR"):
+            build_pkpass(self.contact)
+
     @patch.dict(
         "os.environ",
         {

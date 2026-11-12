@@ -126,6 +126,25 @@ contact information, so handle it as private data. API errors, including 401,
 422, and 500 responses, fail the action rather than producing a pass.
 Run the local connector contract tests with `ruby workato/test_connector.rb`.
 
+## Configure colors
+
+Set these service-wide environment variables to 6-digit hex colors (with or
+without a leading `#`). The defaults preserve the existing palette:
+
+* `PKPASS_FOREGROUND_COLOR` (`#ffffff`): Apple Wallet pass text.
+* `PKPASS_BACKGROUND_COLOR` (`#17324d`): Apple Wallet pass background.
+* `PKPASS_LABEL_COLOR` (`#dce6f0`): Apple Wallet field labels.
+* `GOOGLE_WALLET_BACKGROUND_COLOR` (`#17324d`): Google Wallet pass background.
+* `ICON_BACKGROUND_COLOR` (`#17324d`) and `ICON_FOREGROUND_COLOR` (`#ffffff`):
+  generated Apple pass icon.
+* `QR_FOREGROUND_COLOR` (`#000000`) and `QR_BACKGROUND_COLOR` (`#ffffff`):
+  generated QR image.
+
+Configure them in the container environment or Compose `.env` file. The
+Kubernetes deployment exposes the same variables in its container environment.
+Invalid color values cause pass creation to fail with the variable name in the
+error.
+
 ## Create a pass
 
 Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
@@ -192,6 +211,8 @@ an approved Generic Class. Configure:
   `Contact Pass`).
 * `GOOGLE_WALLET_ORIGINS`: optional comma-separated web origins where the
   save link will be used.
+* `GOOGLE_WALLET_BACKGROUND_COLOR`: optional 6-digit hex background color
+  (defaults to `#17324d`).
 
 Google Wallet save links contain the pass data and must be kept private. Google
 recommends keeping the signed JWT below 1,800 characters; the endpoint returns
