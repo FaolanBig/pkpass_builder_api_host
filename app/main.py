@@ -426,25 +426,26 @@ def _pass_json(
     address = "\n".join(_address_lines(contact))
     homepage = _company_homepage()
     show_department = _show_department()
-    auxiliary_fields = []
+    secondary_fields = [
+        {"key": "position", "label": "POSITION", "value": contact.job_position}
+    ]
     if show_department:
-        auxiliary_fields.append(
+        secondary_fields.append(
             {"key": "department", "label": "DEPARTMENT", "value": contact.department}
         )
-    auxiliary_fields.extend(
-        [
-            {"key": "street", "label": "STREET", "value": contact.street},
-            {
-                "key": "city",
-                "label": "CITY",
-                "value": f"{contact.postal_code} {contact.city}",
-            },
-            {"key": "country", "label": "COUNTRY", "value": contact.country},
-        ]
-    )
+    auxiliary_fields = [
+        {"key": "street", "label": "STREET", "value": contact.street, "row": 0},
+        {
+            "key": "city",
+            "label": "CITY",
+            "value": f"{contact.postal_code} {contact.city}",
+            "row": 0,
+        },
+        {"key": "country", "label": "COUNTRY", "value": contact.country, "row": 1},
+    ]
     if homepage:
         auxiliary_fields.append(
-            {"key": "homepage", "label": "WEBSITE", "value": homepage}
+            {"key": "homepage", "label": "WEBSITE", "value": homepage, "row": 1}
         )
     back_fields = [
         {"key": "email", "label": "Email", "value": str(contact.email)},
@@ -478,13 +479,7 @@ def _pass_json(
             "primaryFields": [
                 {"key": "name", "label": "NAME", "value": _display_name(contact)}
             ],
-            "secondaryFields": [
-                {
-                    "key": "position",
-                    "label": "POSITION",
-                    "value": contact.job_position,
-                }
-            ],
+            "secondaryFields": secondary_fields,
             "auxiliaryFields": auxiliary_fields,
             "backFields": back_fields,
         },
