@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.6.0-rc` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.7.0-rc` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
@@ -94,7 +94,7 @@ kubectl apply -f k8s.yaml
 kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
-The manifest pins the same `v1.6.0-rc` image used by Docker Compose. Update its
+The manifest pins the same `v1.7.0-rc` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
@@ -158,7 +158,8 @@ curl -X POST http://localhost:8000/passes \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",
@@ -174,9 +175,9 @@ curl -X POST http://localhost:8000/passes \
 
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
-submitted name (prefixed with the academic degree unless it is `N/A`), position,
+submitted given name and surname (prefixed with the academic degree unless it is `N/A`), position,
 email, phone, and address, with the organization name as company. The pass front
-shows the name, position, and address; the back contains all fields. The
+shows the name, position, and the full address (street, postal code and city, country); the back contains all fields. The
 department is only shown (pass and vCard) when `SHOW_DEPARTMENT` is `true`, and
 `COMPANY_HOMEPAGE` (optional) adds the company website to the pass and vCard.
 The address is sent as `street`, `postalCode`, `city`, and `country`. An optional profile picture can be sent in the Apple pass
@@ -233,7 +234,8 @@ curl -X POST http://localhost:8000/passes/google-wallet \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",

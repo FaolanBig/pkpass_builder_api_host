@@ -19,7 +19,8 @@ from app.main import (
 class GoogleWalletTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contact = ContactRequest(
-            name="Ada Lovelace",
+            givenName="Ada",
+            surname="Lovelace",
             academicDegree="PhD",
             jobPosition="Researcher",
             email="ada@example.org",
@@ -127,7 +128,8 @@ class GoogleWalletTests(unittest.TestCase):
 
     def test_rejects_save_url_over_google_limit(self) -> None:
         long_contact = ContactRequest(
-            name="N" * 256,
+            givenName="N" * 256,
+            surname="S" * 256,
             academicDegree="D" * 256,
             jobPosition="P" * 256,
             email="ada@example.org",

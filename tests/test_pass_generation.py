@@ -16,7 +16,8 @@ from app.main import ContactRequest, build_pkpass
 class PassGenerationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contact = ContactRequest(
-            name="Ada Lovelace",
+            givenName="Ada",
+            surname="Lovelace",
             academicDegree="PhD",
             jobPosition="Researcher",
             email="ada@example.org",
@@ -76,6 +77,7 @@ class PassGenerationTests(unittest.TestCase):
         vcard = pass_data["barcodes"][0]["message"]
         self.assertIn("ORG:Acme;Computing", vcard)
         self.assertIn("URL:https://acme.example", vcard)
+        self.assertIn("N:Lovelace;Ada;;PhD;", vcard)
         self.assertIn("FN:PhD Ada Lovelace", vcard)
 
     @patch.dict(
