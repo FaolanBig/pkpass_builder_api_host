@@ -22,7 +22,10 @@ class PassGenerationTests(unittest.TestCase):
             email="ada@example.org",
             phoneNumber="+1 555 0100",
             department="Computing",
-            location="London",
+            street="1 Main St",
+            postalCode="SW1A 1AA",
+            city="London",
+            country="UK",
         )
 
     @patch.dict(
@@ -39,21 +42,52 @@ class PassGenerationTests(unittest.TestCase):
             pass_data = json.loads(package.read("pass.json"))
             serialized_pass = json.dumps(pass_data)
             for value in (
-                "Ada Lovelace",
-                "PhD",
+                "PhD Ada Lovelace",
                 "Researcher",
                 "ada@example.org",
                 "+1 555 0100",
-                "Computing",
-                "London",
+                "1 Main St",
+                "SW1A 1AA London",
             ):
                 self.assertIn(value, serialized_pass)
+            self.assertNotIn("Computing", serialized_pass)
             self.assertEqual(
                 pass_data["barcodes"][0]["format"],
                 "PKBarcodeFormatQR",
             )
             self.assertIn("BEGIN:VCARD", pass_data["barcodes"][0]["message"])
             self.assertGreater(len(package.read("qr.png")), 0)
+
+    @patch.dict(
+        "os.environ",
+        {
+            "PKPASS_SIGNING_MODE": "unsigned",
+            "ORGANIZATION_NAME": "Acme",
+            "SHOW_DEPARTMENT": "true",
+            "COMPANY_HOMEPAGE": "https://acme.example",
+        },
+    )
+    def test_department_homepage_and_company_in_pass_and_vcard(self) -> None:
+        with zipfile.ZipFile(BytesIO(build_pkpass(self.contact))) as package:
+            pass_data = json.loads(package.read("pass.json"))
+        serialized_pass = json.dumps(pass_data)
+        self.assertIn("Computing", serialized_pass)
+        self.assertIn("https://acme.example", serialized_pass)
+        vcard = pass_data["barcodes"][0]["message"]
+        self.assertIn("ORG:Acme;Computing", vcard)
+        self.assertIn("URL:https://acme.example", vcard)
+        self.assertIn("FN:PhD Ada Lovelace", vcard)
+
+    @patch.dict(
+        "os.environ", {"PKPASS_SIGNING_MODE": "unsigned", "ORGANIZATION_NAME": "Acme"}
+    )
+    def test_na_degree_is_ignored(self) -> None:
+        contact = self.contact.model_copy(update={"academic_degree": "N/A"})
+        with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+            pass_data = json.loads(package.read("pass.json"))
+        self.assertNotIn("N/A", json.dumps(pass_data))
+        self.assertIn("FN:Ada Lovelace", pass_data["barcodes"][0]["message"])
+        self.assertIn("ORG:Acme\r\n", pass_data["barcodes"][0]["message"])
 
     def test_configured_colors_are_used_in_pass_icon_and_qr(self) -> None:
         with patch.dict(

@@ -57,7 +57,10 @@
                   "email": "ada@example.org",
                   "phoneNumber": "+1 555 0100",
                   "department": "Computing",
-                  "location": "London"
+                  "street": "1 Main St",
+                  "postalCode": "SW1A 1AA",
+                  "city": "London",
+                  "country": "UK"
                 }
               }
             }
@@ -137,7 +140,10 @@
                 "email": "ada@example.org",
                 "phoneNumber": "+1 555 0100",
                 "department": "Computing",
-                "location": "London"
+                "street": "1 Main St",
+                  "postalCode": "SW1A 1AA",
+                  "city": "London",
+                  "country": "UK"
               }
             }
           }
@@ -222,7 +228,10 @@
           "email",
           "phoneNumber",
           "department",
-          "location"
+          "street",
+          "postalCode",
+          "city",
+          "country"
         ],
         "properties": {
           "name": {
@@ -260,11 +269,29 @@
             "maxLength": 256,
             "description": "Contact's department."
           },
-          "location": {
+          "street": {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "description": "Contact's work location."
+            "description": "Street of the company site."
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "Postal code of the company site. Also accepts `postal_code`."
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "City of the company site."
+          },
+          "country": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Country of the company site."
           },
           "profilePicture": {
             "anyOf": [
