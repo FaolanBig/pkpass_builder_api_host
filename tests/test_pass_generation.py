@@ -16,7 +16,8 @@ from app.main import ContactRequest, build_pkpass
 class PassGenerationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contact = ContactRequest(
-            name="Ada Lovelace",
+            givenName="Ada",
+            surname="Lovelace",
             academicDegree="PhD",
             jobPosition="Researcher",
             email="ada@example.org",
@@ -39,7 +40,8 @@ class PassGenerationTests(unittest.TestCase):
             pass_data = json.loads(package.read("pass.json"))
             serialized_pass = json.dumps(pass_data)
             for value in (
-                "Ada Lovelace",
+                "Ada",
+                "Lovelace",
                 "PhD",
                 "Researcher",
                 "ada@example.org",
@@ -53,6 +55,16 @@ class PassGenerationTests(unittest.TestCase):
                 "PKBarcodeFormatQR",
             )
             self.assertIn("BEGIN:VCARD", pass_data["barcodes"][0]["message"])
+            self.assertIn("FN:Ada Lovelace", pass_data["barcodes"][0]["message"])
+            self.assertIn("N:Lovelace;Ada;;;", pass_data["barcodes"][0]["message"])
+            self.assertEqual(
+                pass_data["generic"]["primaryFields"][0]["value"],
+                "Ada",
+            )
+            self.assertEqual(
+                pass_data["generic"]["secondaryFields"][0]["value"],
+                "Lovelace",
+            )
             self.assertGreater(len(package.read("qr.png")), 0)
 
     def test_configured_colors_are_used_in_pass_icon_and_qr(self) -> None:
@@ -174,6 +186,21 @@ class PassGenerationTests(unittest.TestCase):
                 **self.contact.model_dump(exclude_none=True),
                 profile_picture=base64.b64encode(b"not an image"),
             )
+
+    def test_given_name_and_surname_accept_snake_case(self) -> None:
+        contact = ContactRequest(
+            given_name="Ada",
+            surname="Lovelace",
+            academic_degree="PhD",
+            job_position="Researcher",
+            email="ada@example.org",
+            phone_number="+1 555 0100",
+            department="Computing",
+            location="London",
+        )
+
+        self.assertEqual(contact.given_name, "Ada")
+        self.assertEqual(contact.surname, "Lovelace")
 
     def test_oversized_profile_picture_is_rejected(self) -> None:
         oversized_image = base64.b64encode(b"x" * 5_000_001)

@@ -51,7 +51,8 @@
                   "$ref": "#/components/schemas/ContactRequest"
                 },
                 "example": {
-                  "name": "Ada Lovelace",
+                  "givenName": "Ada",
+                  "surname": "Lovelace",
                   "academicDegree": "PhD",
                   "jobPosition": "Researcher",
                   "email": "ada@example.org",
@@ -117,7 +118,7 @@
       "post": {
         "operationId": "createContactPass",
         "summary": "Create a contact pass",
-        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. Optionally, `profilePicture` may contain raw Base64-encoded PNG, JPEG, or WebP image bytes (up to 5 MB; each dimension at most 4096 pixels); it is cropped to a square and displayed as a thumbnail on the pass front. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
+        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. The given name and surname are displayed on separate rows on the pass front. Optionally, `profilePicture` may contain raw Base64-encoded PNG, JPEG, or WebP image bytes (up to 5 MB; each dimension at most 4096 pixels); it is cropped to a square and displayed as a thumbnail on the pass front. The JSON request also accepts snake_case variants of camelCase property names. For `givenName`, `surname`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Given Name`, `Surname`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -131,7 +132,8 @@
                 "$ref": "#/components/schemas/ContactRequest"
               },
               "example": {
-                "name": "Ada Lovelace",
+                "givenName": "Ada",
+                "surname": "Lovelace",
                 "academicDegree": "PhD",
                 "jobPosition": "Researcher",
                 "email": "ada@example.org",
@@ -216,7 +218,8 @@
       "ContactRequest": {
         "type": "object",
         "required": [
-          "name",
+          "givenName",
+          "surname",
           "academicDegree",
           "jobPosition",
           "email",
@@ -225,11 +228,17 @@
           "location"
         ],
         "properties": {
-          "name": {
+          "givenName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "description": "Contact's full name. Also accepts `Name`."
+            "description": "Contact's given name. Also accepts `given_name` or `Given Name`."
+          },
+          "surname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Contact's surname. Also accepts `Surname`."
           },
           "academicDegree": {
             "type": "string",

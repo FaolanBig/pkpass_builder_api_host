@@ -148,15 +148,16 @@ error.
 ## Create a pass
 
 Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
-Field names accept camelCase or snake_case; the labels `Name`, `Academic Degree`,
-`Job Position`, and `Phone Number` are also accepted.
+Field names accept camelCase or snake_case. `Given Name`, `Surname`,
+`Academic Degree`, `Job Position`, and `Phone Number` are also accepted.
 
 ```sh
 curl -X POST http://localhost:8000/passes \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",
@@ -168,10 +169,11 @@ curl -X POST http://localhost:8000/passes \
 ```
 
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
-Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
-submitted name, degree, position, email, phone, department, and location. The
-pass front shows the name, position, degree, department, and location; the back
-contains all fields. An optional profile picture can be sent in the Apple pass
+Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the submitted given name and surname,
+degree, position, email, phone, department, and location. The Apple Wallet pass
+displays the given name and surname on separate rows; Google Wallet displays
+them on separate header lines. The pass also shows the position, degree,
+department, and location; the back contains all fields. An optional profile picture can be sent in the Apple pass
 request as `profilePicture`, containing the raw Base64-encoded bytes of a PNG,
 JPEG, or WebP image (up to 5 MB, with neither dimension over 4096 pixels). The
 service crops it to a square and packages Apple Wallet `thumbnail` images for
@@ -225,7 +227,8 @@ curl -X POST http://localhost:8000/passes/google-wallet \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",

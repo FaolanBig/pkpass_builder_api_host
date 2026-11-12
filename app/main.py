@@ -29,10 +29,15 @@ class SigningMode(str, Enum):
 class ContactRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str = Field(
+    given_name: str = Field(
         min_length=1,
         max_length=256,
-        validation_alias=AliasChoices("name", "Name"),
+        validation_alias=AliasChoices("givenName", "given_name", "Given Name"),
+    )
+    surname: str = Field(
+        min_length=1,
+        max_length=256,
+        validation_alias=AliasChoices("surname", "Surname"),
     )
     academic_degree: str = Field(
         min_length=1,
@@ -157,8 +162,8 @@ def _vcard(contact: ContactRequest) -> str:
     lines = [
         "BEGIN:VCARD",
         "VERSION:3.0",
-        f"FN:{_vcard_escape(contact.name)}",
-        f"N:{_vcard_escape(contact.name)};;;;",
+        f"FN:{_vcard_escape(contact.given_name)} {_vcard_escape(contact.surname)}",
+        f"N:{_vcard_escape(contact.surname)};{_vcard_escape(contact.given_name)};;;",
         f"TITLE:{_vcard_escape(contact.job_position)}",
         f"ORG:{_vcard_escape(contact.department)}",
         f"EMAIL;TYPE=WORK:{_vcard_escape(email)}",
@@ -213,8 +218,8 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
         "classId": class_id,
         "state": "ACTIVE",
         "cardTitle": _google_wallet_localized_string(organization_name),
-        "header": _google_wallet_localized_string(contact.name),
-        "subheader": _google_wallet_localized_string(contact.job_position),
+        "header": _google_wallet_localized_string(contact.given_name),
+        "subheader": _google_wallet_localized_string(contact.surname),
         "hexBackgroundColor": _hex_color(
             _configured_color("GOOGLE_WALLET_BACKGROUND_COLOR", "#17324d")
         ),
@@ -224,6 +229,7 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
                 "body": "\n".join(
                     (
                         f"Academic Degree: {contact.academic_degree}",
+                        f"Job Position: {contact.job_position}",
                         f"Email: {contact.email}",
                         f"Phone: {contact.phone_number}",
                         f"Department: {contact.department}",
@@ -376,12 +382,25 @@ def _pass_json(
             _configured_color("PKPASS_LABEL_COLOR", "#dce6f0")
         ),
         "generic": {
-            "primaryFields": [{"key": "name", "label": "NAME", "value": contact.name}],
-            "secondaryFields": [
+            "headerFields": [
                 {
                     "key": "position",
                     "label": "POSITION",
                     "value": contact.job_position,
+                }
+            ],
+            "primaryFields": [
+                {
+                    "key": "givenName",
+                    "label": "GIVEN NAME",
+                    "value": contact.given_name,
+                }
+            ],
+            "secondaryFields": [
+                {
+                    "key": "surname",
+                    "label": "SURNAME",
+                    "value": contact.surname,
                 }
             ],
             "auxiliaryFields": [

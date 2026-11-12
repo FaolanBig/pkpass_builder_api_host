@@ -19,7 +19,8 @@ from app.main import (
 class GoogleWalletTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contact = ContactRequest(
-            name="Ada Lovelace",
+            givenName="Ada",
+            surname="Lovelace",
             academicDegree="PhD",
             jobPosition="Researcher",
             email="ada@example.org",
@@ -74,7 +75,10 @@ class GoogleWalletTests(unittest.TestCase):
         generic_object = claims["payload"]["genericObjects"][0]
         self.assertEqual(generic_object["classId"], "123456789.contact")
         self.assertEqual(
-            generic_object["header"]["defaultValue"]["value"], "Ada Lovelace"
+            generic_object["header"]["defaultValue"]["value"], "Ada"
+        )
+        self.assertEqual(
+            generic_object["subheader"]["defaultValue"]["value"], "Lovelace"
         )
         self.assertEqual(
             generic_object["barcode"]["type"],
@@ -85,6 +89,10 @@ class GoogleWalletTests(unittest.TestCase):
             "Academic Degree: PhD",
             generic_object["textModulesData"][0]["body"],
         )
+        self.assertIn(
+            "Job Position: Researcher",
+            generic_object["textModulesData"][0]["body"],
+        )
         for value in (
             "ada@example.org",
             "+1 555 0100",
@@ -92,10 +100,6 @@ class GoogleWalletTests(unittest.TestCase):
             "London",
         ):
             self.assertIn(value, generic_object["textModulesData"][0]["body"])
-        self.assertEqual(
-            generic_object["subheader"]["defaultValue"]["value"],
-            "Researcher",
-        )
 
     @patch.dict("os.environ", {"GOOGLE_WALLET_BACKGROUND_COLOR": "#a1b2c3"})
     def test_uses_configured_google_wallet_background_color(self) -> None:
@@ -131,7 +135,8 @@ class GoogleWalletTests(unittest.TestCase):
 
     def test_rejects_save_url_over_google_limit(self) -> None:
         long_contact = ContactRequest(
-            name="N" * 256,
+            givenName="G" * 256,
+            surname="S" * 256,
             academicDegree="D" * 256,
             jobPosition="P" * 256,
             email="ada@example.org",

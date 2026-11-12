@@ -87,7 +87,8 @@ class ConnectorTest < Minitest::Test
   def test_apple_pass_preserves_binary_and_declares_metadata
     binary = "PK\x03\x04\x00\xff".b
     context = Context.new(binary)
-    input = { 'name' => 'Ada', 'phoneNumber' => '+1 555 0100' }
+    input = { 'givenName' => 'Ada', 'surname' => 'Lovelace',
+              'phoneNumber' => '+1 555 0100' }
     action = CONNECTOR[:actions][:create_apple_pass]
     result = context.instance_exec({}, input, &action[:execute])
 
@@ -107,7 +108,7 @@ class ConnectorTest < Minitest::Test
     response = { 'saveUrl' => 'https://pay.google.com/gp/v/save/token',
                  'objectId' => 'issuer.object' }
     context = Context.new(response)
-    input = { 'name' => 'Ada' }
+    input = { 'givenName' => 'Ada', 'surname' => 'Lovelace' }
     action = CONNECTOR[:actions][:create_google_wallet_pass]
     request = context.instance_exec({}, input, &action[:execute])
 
