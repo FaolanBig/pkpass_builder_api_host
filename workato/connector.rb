@@ -43,7 +43,13 @@
           { name: 'email', label: 'Email', optional: false },
           { name: 'phoneNumber', label: 'Phone number', optional: false },
           { name: 'department', label: 'Department', optional: false },
-          { name: 'location', label: 'Location', optional: false }
+          { name: 'location', label: 'Location', optional: false },
+          {
+            name: 'profilePicture',
+            label: 'Profile picture (Base64)',
+            optional: true,
+            hint: 'Optional PNG, JPEG, or WebP image encoded as Base64; used on Apple Wallet passes only.'
+          }
         ]
       end
     }

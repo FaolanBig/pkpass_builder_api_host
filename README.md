@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.3.0` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.4.0-rc` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
@@ -94,7 +94,7 @@ kubectl apply -f k8s.yaml
 kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
-The manifest pins the same `v1.3.0` image used by Docker Compose. Update its
+The manifest pins the same `v1.4.0-rc` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
@@ -152,8 +152,17 @@ The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
 submitted name, degree, position, email, phone, department, and location. The
 pass front shows the name, position, degree, department, and location; the back
-contains all fields. An optional company logo can be included in every Apple
-pass by setting `COMPANY_LOGO_PATH` to an image file available to the service.
+contains all fields. An optional profile picture can be sent in the Apple pass
+request as `profilePicture`, containing the raw Base64-encoded bytes of a PNG,
+JPEG, or WebP image (up to 5 MB, with neither dimension over 4096 pixels). The
+service crops it to a square and packages Apple Wallet `thumbnail` images for
+display on the pass front. For example, add
+`"profilePicture": "<base64-encoded-image>"` to the JSON body. The
+`profile_picture` snake_case spelling is also accepted. This field is ignored
+by the Google Wallet endpoint.
+
+An optional company logo can be included in every Apple pass by setting
+`COMPANY_LOGO_PATH` to an image file available to the service.
 For Docker Compose, put the image in the configured certificates directory
 (default `./certificates`) and set, for example,
 `COMPANY_LOGO_PATH=/run/secrets/company-logo.png`. The service packages

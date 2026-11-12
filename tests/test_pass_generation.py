@@ -1,3 +1,4 @@
+import base64
 import json
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image
+from pydantic import ValidationError
 
 from app.main import ContactRequest, build_pkpass
 
@@ -100,6 +102,47 @@ class PassGenerationTests(unittest.TestCase):
                 with self.subTest(logo=name):
                     with Image.open(BytesIO(package.read(name))) as image:
                         self.assertEqual(image.size, expected_size)
+
+    @patch.dict(
+        "os.environ",
+        {"PKPASS_SIGNING_MODE": "unsigned", "COMPANY_LOGO_PATH": ""},
+    )
+    def test_profile_picture_is_added_as_wallet_thumbnail_variants(self) -> None:
+        image_bytes = BytesIO()
+        Image.new("RGB", (120, 80), "purple").save(image_bytes, format="PNG")
+        contact = ContactRequest(
+            **self.contact.model_dump(exclude_none=True),
+            profilePicture=base64.b64encode(image_bytes.getvalue()).decode("ascii"),
+        )
+
+        contents = build_pkpass(contact)
+
+        with zipfile.ZipFile(BytesIO(contents)) as package:
+            for name, expected_size in (
+                ("thumbnail.png", (90, 90)),
+                ("thumbnail@2x.png", (180, 180)),
+                ("thumbnail@3x.png", (270, 270)),
+            ):
+                with self.subTest(thumbnail=name):
+                    self.assertIn(name, package.namelist())
+                    with Image.open(BytesIO(package.read(name))) as image:
+                        self.assertEqual(image.size, expected_size)
+                        self.assertEqual(image.getpixel((45, 45))[:3], (128, 0, 128))
+
+    def test_invalid_profile_picture_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValidationError, "valid image"):
+            ContactRequest(
+                **self.contact.model_dump(exclude_none=True),
+                profile_picture=base64.b64encode(b"not an image"),
+            )
+
+    def test_oversized_profile_picture_is_rejected(self) -> None:
+        oversized_image = base64.b64encode(b"x" * 5_000_001)
+        with self.assertRaisesRegex(ValidationError, "must not exceed 5 MB"):
+            ContactRequest(
+                **self.contact.model_dump(exclude_none=True),
+                profile_picture=oversized_image,
+            )
 
     @patch.dict(
         "os.environ",

@@ -62,8 +62,9 @@ class ConnectorTest < Minitest::Test
     schema = JSON.parse(File.read(File.join(__dir__, '..', 'openapi.json')))
     required = schema.dig('components', 'schemas', 'ContactRequest', 'required')
     fields = CONNECTOR[:object_definitions][:contact][:fields].call({}, {})
-    assert_equal required.sort, fields.map { |field| field[:name] }.sort
-    assert fields.all? { |field| field[:optional] == false }
+    assert_equal required.sort,
+                 fields.reject { |field| field[:optional] }.map { |field| field[:name] }.sort
+    assert_equal true, fields.find { |field| field[:name] == 'profilePicture' }[:optional]
 
     CONNECTOR[:actions].each_value do |action|
       assert_equal fields, action[:input_fields].call('contact' => fields)
