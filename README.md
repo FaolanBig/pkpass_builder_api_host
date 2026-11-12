@@ -131,6 +131,8 @@ Run the local connector contract tests with `ruby workato/test_connector.rb`.
 Set these service-wide environment variables to 6-digit hex colors (with or
 without a leading `#`). The defaults preserve the existing palette:
 
+* `SHOW_DEPARTMENT` (`false`): show the department on the pass and in the QR contact.
+* `COMPANY_HOMEPAGE` (unset): company website shown on the pass and in the QR contact.
 * `PKPASS_FOREGROUND_COLOR` (`#ffffff`): Apple Wallet pass text.
 * `PKPASS_BACKGROUND_COLOR` (`#17324d`): Apple Wallet pass background.
 * `PKPASS_LABEL_COLOR` (`#dce6f0`): Apple Wallet field labels.
@@ -162,16 +164,22 @@ curl -X POST http://localhost:8000/passes \
     "email": "ada@example.org",
     "phoneNumber": "+1 555 0100",
     "department": "Computing",
-    "location": "London"
+    "street": "1 Main St",
+    "postalCode": "SW1A 1AA",
+    "city": "London",
+    "country": "UK"
   }' \
   -o contact.pkpass
 ```
 
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
-submitted name, degree, position, email, phone, department, and location. The
-pass front shows the name, position, degree, department, and location; the back
-contains all fields. An optional profile picture can be sent in the Apple pass
+submitted name (prefixed with the academic degree unless it is `N/A`), position,
+email, phone, and address, with the organization name as company. The pass front
+shows the name, position, and address; the back contains all fields. The
+department is only shown (pass and vCard) when `SHOW_DEPARTMENT` is `true`, and
+`COMPANY_HOMEPAGE` (optional) adds the company website to the pass and vCard.
+The address is sent as `street`, `postalCode`, `city`, and `country`. An optional profile picture can be sent in the Apple pass
 request as `profilePicture`, containing the raw Base64-encoded bytes of a PNG,
 JPEG, or WebP image (up to 5 MB, with neither dimension over 4096 pixels). The
 service crops it to a square and packages Apple Wallet `thumbnail` images for
@@ -231,7 +239,10 @@ curl -X POST http://localhost:8000/passes/google-wallet \
     "email": "ada@example.org",
     "phoneNumber": "+1 555 0100",
     "department": "Computing",
-    "location": "London"
+    "street": "1 Main St",
+    "postalCode": "SW1A 1AA",
+    "city": "London",
+    "country": "UK"
   }'
 ```
 
