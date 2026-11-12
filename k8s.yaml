@@ -40,6 +40,22 @@ spec:
               value: "A1B2C3D4E5"
             - name: ORGANIZATION_NAME
               value: "Organization Name"
+            - name: PKPASS_FOREGROUND_COLOR
+              value: "#ffffff"
+            - name: PKPASS_BACKGROUND_COLOR
+              value: "#17324d"
+            - name: PKPASS_LABEL_COLOR
+              value: "#dce6f0"
+            - name: GOOGLE_WALLET_BACKGROUND_COLOR
+              value: "#17324d"
+            - name: ICON_BACKGROUND_COLOR
+              value: "#17324d"
+            - name: ICON_FOREGROUND_COLOR
+              value: "#ffffff"
+            - name: QR_FOREGROUND_COLOR
+              value: "#000000"
+            - name: QR_BACKGROUND_COLOR
+              value: "#ffffff"
             - name: PASS_CERTIFICATE_PATH
               value: /etc/pkpass-secrets/pass-certificate.pem
             - name: PASS_PRIVATE_KEY_PATH

@@ -97,6 +97,20 @@ class GoogleWalletTests(unittest.TestCase):
             "Researcher",
         )
 
+    @patch.dict("os.environ", {"GOOGLE_WALLET_BACKGROUND_COLOR": "#a1b2c3"})
+    def test_uses_configured_google_wallet_background_color(self) -> None:
+        save_url, _ = build_google_wallet_save_url(self.contact)
+        token = save_url.rsplit("/", 1)[-1]
+        claims = jwt.decode(
+            token,
+            self.public_key,
+            algorithms=["RS256"],
+            audience="google",
+        )
+        generic_object = claims["payload"]["genericObjects"][0]
+
+        self.assertEqual(generic_object["hexBackgroundColor"], "#a1b2c3")
+
     def test_response_serializes_camel_case_field_names(self) -> None:
         response = GoogleWalletSaveResponse(
             save_url="https://pay.google.com/gp/v/save/token",
