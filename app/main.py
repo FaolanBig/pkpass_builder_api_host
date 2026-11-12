@@ -426,26 +426,27 @@ def _pass_json(
     address = "\n".join(_address_lines(contact))
     homepage = _company_homepage()
     show_department = _show_department()
-    secondary_fields = [
+    header_fields = [
         {"key": "position", "label": "POSITION", "value": contact.job_position}
     ]
     if show_department:
-        secondary_fields.append(
+        header_fields.append(
             {"key": "department", "label": "DEPARTMENT", "value": contact.department}
         )
-    auxiliary_fields = [
-        {"key": "street", "label": "STREET", "value": contact.street, "row": 0},
+    secondary_fields = [
+        {"key": "street", "label": "STREET", "value": contact.street},
         {
             "key": "city",
             "label": "CITY",
             "value": f"{contact.postal_code} {contact.city}",
-            "row": 0,
         },
-        {"key": "country", "label": "COUNTRY", "value": contact.country, "row": 1},
+    ]
+    auxiliary_fields = [
+        {"key": "country", "label": "COUNTRY", "value": contact.country}
     ]
     if homepage:
         auxiliary_fields.append(
-            {"key": "homepage", "label": "WEBSITE", "value": homepage, "row": 1}
+            {"key": "homepage", "label": "WEBSITE", "value": homepage}
         )
     back_fields = [
         {"key": "email", "label": "Email", "value": str(contact.email)},
@@ -479,6 +480,7 @@ def _pass_json(
             "primaryFields": [
                 {"key": "name", "label": "NAME", "value": _display_name(contact)}
             ],
+            "headerFields": header_fields,
             "secondaryFields": secondary_fields,
             "auxiliaryFields": auxiliary_fields,
             "backFields": back_fields,
