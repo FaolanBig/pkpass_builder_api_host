@@ -29,10 +29,17 @@ class SigningMode(str, Enum):
 class ContactRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str = Field(
+    given_name: str = Field(
         min_length=1,
         max_length=256,
-        validation_alias=AliasChoices("name", "Name"),
+        validation_alias=AliasChoices(
+            "givenName", "given_name", "Given Name", "firstName", "first_name"
+        ),
+    )
+    surname: str = Field(
+        min_length=1,
+        max_length=256,
+        validation_alias=AliasChoices("surname", "Surname", "lastName", "last_name"),
     )
     academic_degree: str = Field(
         min_length=1,
@@ -166,7 +173,8 @@ def _academic_degree(contact: ContactRequest) -> str | None:
 
 def _display_name(contact: ContactRequest) -> str:
     degree = _academic_degree(contact)
-    return f"{degree} {contact.name}" if degree else contact.name
+    full_name = f"{contact.given_name} {contact.surname}"
+    return f"{degree} {full_name}" if degree else full_name
 
 
 def _show_department() -> bool:
@@ -195,7 +203,11 @@ def _vcard(contact: ContactRequest, company: str) -> str:
         "BEGIN:VCARD",
         "VERSION:3.0",
         f"FN:{_vcard_escape(_display_name(contact))}",
-        f"N:{_vcard_escape(contact.name)};;;{_vcard_escape(degree or '')};",
+        "N:{};{};;{};".format(
+            _vcard_escape(contact.surname),
+            _vcard_escape(contact.given_name),
+            _vcard_escape(degree or ""),
+        ),
         f"TITLE:{_vcard_escape(contact.job_position)}",
         f"ORG:{org}",
         f"EMAIL;TYPE=WORK:{_vcard_escape(email)}",
@@ -419,7 +431,17 @@ def _pass_json(
         auxiliary_fields.append(
             {"key": "department", "label": "DEPARTMENT", "value": contact.department}
         )
-    auxiliary_fields.append({"key": "address", "label": "ADDRESS", "value": address})
+    auxiliary_fields.extend(
+        [
+            {"key": "street", "label": "STREET", "value": contact.street},
+            {
+                "key": "city",
+                "label": "CITY",
+                "value": f"{contact.postal_code} {contact.city}",
+            },
+            {"key": "country", "label": "COUNTRY", "value": contact.country},
+        ]
+    )
     if homepage:
         auxiliary_fields.append(
             {"key": "homepage", "label": "WEBSITE", "value": homepage}

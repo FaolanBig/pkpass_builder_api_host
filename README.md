@@ -158,7 +158,8 @@ curl -X POST http://localhost:8000/passes \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",
@@ -174,9 +175,9 @@ curl -X POST http://localhost:8000/passes \
 
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
-submitted name (prefixed with the academic degree unless it is `N/A`), position,
+submitted given name and surname (prefixed with the academic degree unless it is `N/A`), position,
 email, phone, and address, with the organization name as company. The pass front
-shows the name, position, and address; the back contains all fields. The
+shows the name, position, and the full address (street, postal code and city, country); the back contains all fields. The
 department is only shown (pass and vCard) when `SHOW_DEPARTMENT` is `true`, and
 `COMPANY_HOMEPAGE` (optional) adds the company website to the pass and vCard.
 The address is sent as `street`, `postalCode`, `city`, and `country`. An optional profile picture can be sent in the Apple pass
@@ -233,7 +234,8 @@ curl -X POST http://localhost:8000/passes/google-wallet \
   -H "X-API-Key: $API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
-    "name": "Ada Lovelace",
+    "givenName": "Ada",
+    "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
     "email": "ada@example.org",

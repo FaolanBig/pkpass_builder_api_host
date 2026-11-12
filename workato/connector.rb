@@ -37,7 +37,8 @@
     contact: {
       fields: lambda do |_connection, _config_fields|
         [
-          { name: 'name', label: 'Name', optional: false },
+          { name: 'givenName', label: 'Given name', optional: false },
+          { name: 'surname', label: 'Surname', optional: false },
           { name: 'academicDegree', label: 'Academic degree', optional: false },
           { name: 'jobPosition', label: 'Job position', optional: false },
           { name: 'email', label: 'Email', optional: false },
