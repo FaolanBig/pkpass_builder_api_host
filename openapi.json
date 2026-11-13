@@ -267,6 +267,11 @@
             ],
             "description": "Optional job title or position; omit or use null to exclude it from the pass and QR contact. Also accepts `job_position` or `Job Position`."
           },
+          "showJobPosition": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the job position on the Apple pass front and back. When false, the position remains in the QR contact. Does not affect Google Wallet. Also accepts `show_job_position`."
+          },
           "email": {
             "type": "string",
             "format": "email",

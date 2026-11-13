@@ -41,6 +41,13 @@
           { name: 'surname', label: 'Surname', optional: false },
           { name: 'academicDegree', label: 'Academic degree', optional: false },
           { name: 'jobPosition', label: 'Job position', optional: true },
+          {
+            name: 'showJobPosition',
+            label: 'Show job position on Apple pass',
+            type: 'boolean',
+            optional: true,
+            hint: 'Defaults to true. The QR contact and Google Wallet are unaffected.'
+          },
           { name: 'email', label: 'Email', optional: false },
           { name: 'phoneNumber', label: 'Phone number', optional: false },
           { name: 'department', label: 'Department', optional: false },

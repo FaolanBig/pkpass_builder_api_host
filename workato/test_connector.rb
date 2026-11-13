@@ -65,6 +65,9 @@ class ConnectorTest < Minitest::Test
     assert_equal required.sort,
                  fields.reject { |field| field[:optional] }.map { |field| field[:name] }.sort
     assert_equal true, fields.find { |field| field[:name] == 'profilePicture' }[:optional]
+    toggle = fields.find { |field| field[:name] == 'showJobPosition' }
+    assert_equal true, toggle[:optional]
+    assert_equal 'boolean', toggle[:type]
 
     CONNECTOR[:actions].each_value do |action|
       assert_equal fields, action[:input_fields].call('contact' => fields)

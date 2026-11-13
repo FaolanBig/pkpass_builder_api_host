@@ -70,8 +70,13 @@ class PassGenerationTests(unittest.TestCase):
 
     @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
     def test_omitted_job_position_is_not_in_pass_or_vcard(self) -> None:
-        payload = self.contact.model_dump(exclude={"job_position"})
-        for extra in ({}, {"jobPosition": None}):
+        payload = self.contact.model_dump(exclude={"job_position", "show_job_position"})
+        for extra in (
+            {},
+            {"jobPosition": None},
+            {"showJobPosition": True},
+            {"showJobPosition": False},
+        ):
             with self.subTest(extra=extra):
                 contact = ContactRequest.model_validate({**payload, **extra})
                 with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
@@ -81,6 +86,41 @@ class PassGenerationTests(unittest.TestCase):
                     self.assertNotIn("position", [field["key"] for field in fields])
                 self.assertNotIn("\r\nTITLE:", pass_data["barcodes"][0]["message"])
                 self.assertIn("ADR;TYPE=WORK:", pass_data["barcodes"][0]["message"])
+
+    @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
+    def test_job_position_display_toggle_only_affects_pass_fields(self) -> None:
+        payload = self.contact.model_dump(exclude={"show_job_position"})
+        cases = (
+            ({}, True),
+            ({"showJobPosition": True}, True),
+            ({"showJobPosition": False}, False),
+            ({"show_job_position": False}, False),
+        )
+        qr_images = []
+        for options, visible in cases:
+            with self.subTest(options=options):
+                contact = ContactRequest.model_validate({**payload, **options})
+                with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+                    pass_data = json.loads(package.read("pass.json"))
+                    qr_images.append(package.read("qr.png"))
+                for section in ("auxiliaryFields", "backFields"):
+                    positions = [
+                        field for field in pass_data["generic"][section]
+                        if field["key"] == "position"
+                    ]
+                    self.assertEqual(len(positions), int(visible))
+                    if visible:
+                        self.assertEqual(positions[0]["value"], "Researcher")
+                self.assertIn(
+                    "\r\nTITLE:Researcher\r\n", pass_data["barcodes"][0]["message"]
+                )
+        self.assertTrue(all(image == qr_images[0] for image in qr_images))
+
+    def test_job_position_display_toggle_requires_boolean(self) -> None:
+        payload = self.contact.model_dump(exclude={"show_job_position"})
+        for value in ("false", None, 1):
+            with self.subTest(value=value), self.assertRaises(ValidationError):
+                ContactRequest.model_validate({**payload, "showJobPosition": value})
 
     def test_job_position_aliases_and_validation(self) -> None:
         payload = self.contact.model_dump(exclude={"job_position"})

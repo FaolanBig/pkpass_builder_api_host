@@ -54,6 +54,12 @@ class ContactRequest(BaseModel):
         max_length=256,
         validation_alias=AliasChoices("jobPosition", "job_position", "Job Position"),
     )
+    show_job_position: bool = Field(
+        default=True,
+        strict=True,
+        validation_alias=AliasChoices("showJobPosition", "show_job_position"),
+        description="Show job position on the Apple pass; the QR contact is unaffected.",
+    )
     email: EmailStr
     phone_number: str = Field(
         min_length=1,
@@ -448,7 +454,7 @@ def _pass_json(
         },
     ]
     auxiliary_fields = []
-    if contact.job_position is not None:
+    if contact.show_job_position and contact.job_position is not None:
         auxiliary_fields.append(
             {"key": "position", "label": "POSITION", "value": contact.job_position}
         )
@@ -463,7 +469,7 @@ def _pass_json(
         {"key": "email", "label": "Email", "value": str(contact.email)},
         {"key": "phone", "label": "Phone", "value": contact.phone_number},
     ]
-    if contact.job_position is not None:
+    if contact.show_job_position and contact.job_position is not None:
         back_fields.append(
             {"key": "position", "label": "Job Position", "value": contact.job_position}
         )
