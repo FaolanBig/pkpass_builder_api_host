@@ -152,6 +152,8 @@ error.
 Send a JSON request to `POST /passes` with the API key in the `X-API-Key` header.
 Field names accept camelCase or snake_case; the labels `Name`, `Academic Degree`,
 `Job Position`, and `Phone Number` are also accepted.
+`jobPosition` is optional: omit it or set it to `null` to leave the position off
+both wallet passes and their QR contacts. A supplied string must be nonempty.
 
 ```sh
 curl -X POST http://localhost:8000/passes \

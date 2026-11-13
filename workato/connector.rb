@@ -40,7 +40,7 @@
           { name: 'givenName', label: 'Given name', optional: false },
           { name: 'surname', label: 'Surname', optional: false },
           { name: 'academicDegree', label: 'Academic degree', optional: false },
-          { name: 'jobPosition', label: 'Job position', optional: false },
+          { name: 'jobPosition', label: 'Job position', optional: true },
           { name: 'email', label: 'Email', optional: false },
           { name: 'phoneNumber', label: 'Phone number', optional: false },
           { name: 'department', label: 'Department', optional: false },

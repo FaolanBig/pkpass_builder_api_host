@@ -85,6 +85,7 @@ class GoogleWalletTests(unittest.TestCase):
             "QR_CODE",
         )
         self.assertIn("BEGIN:VCARD", generic_object["barcode"]["value"])
+        self.assertIn("TITLE:Researcher\r\n", generic_object["barcode"]["value"])
         body = generic_object["textModulesData"][0]["body"]
         for value in ("ada@example.org", "+1 555 0100", "1 Main St", "London"):
             self.assertIn(value, body)
@@ -93,6 +94,23 @@ class GoogleWalletTests(unittest.TestCase):
             generic_object["subheader"]["defaultValue"]["value"],
             "Researcher",
         )
+
+    def test_omitted_job_position_is_not_in_google_pass_or_vcard(self) -> None:
+        payload = self.contact.model_dump(exclude={"job_position"})
+        for extra in ({}, {"jobPosition": None}):
+            with self.subTest(extra=extra):
+                contact = ContactRequest.model_validate({**payload, **extra})
+                save_url, _ = build_google_wallet_save_url(contact)
+                claims = jwt.decode(
+                    save_url.rsplit("/", 1)[-1],
+                    self.public_key,
+                    algorithms=["RS256"],
+                    audience="google",
+                )
+                generic_object = claims["payload"]["genericObjects"][0]
+                self.assertNotIn("subheader", generic_object)
+                self.assertNotIn("\r\nTITLE:", generic_object["barcode"]["value"])
+                self.assertIn("ADR;TYPE=WORK:", generic_object["barcode"]["value"])
 
     @patch.dict("os.environ", {"GOOGLE_WALLET_BACKGROUND_COLOR": "#a1b2c3"})
     def test_uses_configured_google_wallet_background_color(self) -> None:

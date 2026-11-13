@@ -57,7 +57,44 @@ class PassGenerationTests(unittest.TestCase):
                 "PKBarcodeFormatQR",
             )
             self.assertIn("BEGIN:VCARD", pass_data["barcodes"][0]["message"])
+            self.assertIn("TITLE:Researcher\r\n", pass_data["barcodes"][0]["message"])
+            for section, label in (
+                ("auxiliaryFields", "POSITION"),
+                ("backFields", "Job Position"),
+            ):
+                self.assertIn(
+                    {"key": "position", "label": label, "value": "Researcher"},
+                    pass_data["generic"][section],
+                )
             self.assertGreater(len(package.read("qr.png")), 0)
+
+    @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
+    def test_omitted_job_position_is_not_in_pass_or_vcard(self) -> None:
+        payload = self.contact.model_dump(exclude={"job_position"})
+        for extra in ({}, {"jobPosition": None}):
+            with self.subTest(extra=extra):
+                contact = ContactRequest.model_validate({**payload, **extra})
+                with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+                    pass_data = json.loads(package.read("pass.json"))
+
+                for fields in pass_data["generic"].values():
+                    self.assertNotIn("position", [field["key"] for field in fields])
+                self.assertNotIn("\r\nTITLE:", pass_data["barcodes"][0]["message"])
+                self.assertIn("ADR;TYPE=WORK:", pass_data["barcodes"][0]["message"])
+
+    def test_job_position_aliases_and_validation(self) -> None:
+        payload = self.contact.model_dump(exclude={"job_position"})
+        for alias in ("jobPosition", "job_position", "Job Position"):
+            with self.subTest(alias=alias):
+                contact = ContactRequest.model_validate({**payload, alias: "Researcher"})
+                self.assertEqual(contact.job_position, "Researcher")
+                with self.assertRaises(ValidationError):
+                    ContactRequest.model_validate({**payload, alias: ""})
+                with self.assertRaises(ValidationError):
+                    ContactRequest.model_validate({**payload, alias: "a" * 257})
+        self.assertIsNone(
+            ContactRequest.model_validate({**payload, "jobPosition": None}).job_position
+        )
 
     @patch.dict(
         "os.environ",
