@@ -157,6 +157,11 @@ both wallet passes and their QR contacts. A supplied string must be nonempty.
 Set the optional boolean `showJobPosition` (or `show_job_position`) to `false`
 to hide a supplied job position on the Apple pass front and back. It defaults to
 `true` and does not change the QR contact or Google Wallet pass.
+When the position is displayed, it occupies the Apple pass's secondary row;
+street, postal code and city, and country appear in the auxiliary row. The
+website field is removed from the Apple pass in this layout, but remains in the
+QR contact. When the position is absent or hidden, the existing address and
+website layout is retained.
 
 ```sh
 curl -X POST http://localhost:8000/passes \
@@ -187,7 +192,8 @@ shows the name, position (unless hidden), and the full address (street, postal
 code and city, country); the back contains the contact details, except a hidden
 position. The
 department is only shown (pass and vCard) when `SHOW_DEPARTMENT` is `true`, and
-`COMPANY_HOMEPAGE` (optional) adds the company website to the pass and vCard.
+`COMPANY_HOMEPAGE` (optional) adds the company website to the vCard and, when
+the position is not displayed, the Apple pass.
 The address is sent as `street`, `postalCode`, `city`, and `country`. An optional profile picture can be sent in the Apple pass
 request as `profilePicture`, containing the raw Base64-encoded bytes of a PNG,
 JPEG, or WebP image (up to 5 MB, with neither dimension over 4096 pixels). The

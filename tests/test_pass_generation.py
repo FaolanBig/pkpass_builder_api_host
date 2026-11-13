@@ -59,7 +59,7 @@ class PassGenerationTests(unittest.TestCase):
             self.assertIn("BEGIN:VCARD", pass_data["barcodes"][0]["message"])
             self.assertIn("TITLE:Researcher\r\n", pass_data["barcodes"][0]["message"])
             for section, label in (
-                ("auxiliaryFields", "POSITION"),
+                ("secondaryFields", "POSITION"),
                 ("backFields", "Job Position"),
             ):
                 self.assertIn(
@@ -103,7 +103,7 @@ class PassGenerationTests(unittest.TestCase):
                 with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
                     pass_data = json.loads(package.read("pass.json"))
                     qr_images.append(package.read("qr.png"))
-                for section in ("auxiliaryFields", "backFields"):
+                for section in ("secondaryFields", "backFields"):
                     positions = [
                         field for field in pass_data["generic"][section]
                         if field["key"] == "position"
@@ -115,6 +115,49 @@ class PassGenerationTests(unittest.TestCase):
                     "\r\nTITLE:Researcher\r\n", pass_data["barcodes"][0]["message"]
                 )
         self.assertTrue(all(image == qr_images[0] for image in qr_images))
+
+    @patch.dict(
+        "os.environ",
+        {
+            "PKPASS_SIGNING_MODE": "unsigned",
+            "COMPANY_HOMEPAGE": "https://acme.example",
+        },
+    )
+    def test_position_layout_and_homepage_for_all_display_states(self) -> None:
+        payload = self.contact.model_dump(exclude={"job_position", "show_job_position"})
+        cases = (
+            ({"jobPosition": "Researcher"}, True),
+            ({"jobPosition": "Researcher", "showJobPosition": True}, True),
+            ({"jobPosition": "Researcher", "showJobPosition": False}, False),
+            ({"showJobPosition": True}, False),
+            ({"showJobPosition": False}, False),
+        )
+        for options, visible in cases:
+            with self.subTest(options=options):
+                contact = ContactRequest.model_validate({**payload, **options})
+                with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+                    pass_data = json.loads(package.read("pass.json"))
+                fields = pass_data["generic"]
+                secondary = [field["key"] for field in fields["secondaryFields"]]
+                auxiliary = [field["key"] for field in fields["auxiliaryFields"]]
+                back = [field["key"] for field in fields["backFields"]]
+                if visible:
+                    self.assertEqual(secondary, ["position"])
+                    self.assertEqual(auxiliary, ["street", "city", "country"])
+                    self.assertNotIn("homepage", back)
+                else:
+                    self.assertEqual(secondary, ["street", "city"])
+                    self.assertEqual(auxiliary, ["country", "homepage"])
+                    self.assertIn("homepage", back)
+                self.assertIn(
+                    "\r\nURL:https://acme.example\r\n",
+                    pass_data["barcodes"][0]["message"],
+                )
+                if contact.job_position is not None:
+                    self.assertIn(
+                        "\r\nTITLE:Researcher\r\n",
+                        pass_data["barcodes"][0]["message"],
+                    )
 
     def test_job_position_display_toggle_requires_boolean(self) -> None:
         payload = self.contact.model_dump(exclude={"show_job_position"})
