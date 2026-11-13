@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.0-rc` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.1-rc` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
@@ -94,7 +94,7 @@ kubectl apply -f k8s.yaml
 kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
-The manifest pins the same `v1.8.0-rc` image used by Docker Compose. Update its
+The manifest pins the same `v1.8.1-rc` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
