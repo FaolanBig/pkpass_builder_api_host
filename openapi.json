@@ -227,7 +227,6 @@
           "givenName",
           "surname",
           "academicDegree",
-          "jobPosition",
           "email",
           "phoneNumber",
           "department",
@@ -256,10 +255,17 @@
             "description": "Academic degree. Also accepts `academic_degree` or `Academic Degree`."
           },
           "jobPosition": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256,
-            "description": "Job title or position. Also accepts `job_position` or `Job Position`."
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional job title or position; omit or use null to exclude it from the pass and QR contact. Also accepts `job_position` or `Job Position`."
           },
           "email": {
             "type": "string",

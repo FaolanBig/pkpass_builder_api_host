@@ -48,7 +48,8 @@ class ContactRequest(BaseModel):
             "academicDegree", "academic_degree", "Academic Degree"
         ),
     )
-    job_position: str = Field(
+    job_position: str | None = Field(
+        default=None,
         min_length=1,
         max_length=256,
         validation_alias=AliasChoices("jobPosition", "job_position", "Job Position"),
@@ -208,7 +209,11 @@ def _vcard(contact: ContactRequest, company: str) -> str:
             _vcard_escape(contact.given_name),
             _vcard_escape(degree or ""),
         ),
-        f"TITLE:{_vcard_escape(contact.job_position)}",
+        *(
+            [f"TITLE:{_vcard_escape(contact.job_position)}"]
+            if contact.job_position is not None
+            else []
+        ),
         f"ORG:{org}",
         f"EMAIL;TYPE=WORK:{_vcard_escape(email)}",
         f"TEL;TYPE=WORK,VOICE:{_vcard_escape(contact.phone_number)}",
@@ -270,7 +275,6 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
         "state": "ACTIVE",
         "cardTitle": _google_wallet_localized_string(organization_name),
         "header": _google_wallet_localized_string(_display_name(contact)),
-        "subheader": _google_wallet_localized_string(contact.job_position),
         "hexBackgroundColor": _hex_color(
             _configured_color("GOOGLE_WALLET_BACKGROUND_COLOR", "#17324d")
         ),
@@ -302,6 +306,10 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
             "alternateText": "Scan to add contact",
         },
     }
+    if contact.job_position is not None:
+        generic_object["subheader"] = _google_wallet_localized_string(
+            contact.job_position
+        )
 
     claims = {
         "iss": service_account_email,
@@ -439,10 +447,14 @@ def _pass_json(
             "value": f"{contact.postal_code} {contact.city}",
         },
     ]
-    auxiliary_fields = [
-        {"key": "position", "label": "POSITION", "value": contact.job_position},
-        {"key": "country", "label": "COUNTRY", "value": contact.country},
-    ]
+    auxiliary_fields = []
+    if contact.job_position is not None:
+        auxiliary_fields.append(
+            {"key": "position", "label": "POSITION", "value": contact.job_position}
+        )
+    auxiliary_fields.append(
+        {"key": "country", "label": "COUNTRY", "value": contact.country}
+    )
     if homepage:
         auxiliary_fields.append(
             {"key": "homepage", "label": "WEBSITE", "value": homepage}
@@ -450,8 +462,11 @@ def _pass_json(
     back_fields = [
         {"key": "email", "label": "Email", "value": str(contact.email)},
         {"key": "phone", "label": "Phone", "value": contact.phone_number},
-        {"key": "position", "label": "Job Position", "value": contact.job_position},
     ]
+    if contact.job_position is not None:
+        back_fields.append(
+            {"key": "position", "label": "Job Position", "value": contact.job_position}
+        )
     if show_department:
         back_fields.append(
             {"key": "department", "label": "Department", "value": contact.department}
