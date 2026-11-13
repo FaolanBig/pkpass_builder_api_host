@@ -445,7 +445,7 @@ def _pass_json(
         header_fields.append(
             {"key": "department", "label": "DEPARTMENT", "value": contact.department}
         )
-    secondary_fields = [
+    address_fields = [
         {"key": "street", "label": "STREET", "value": contact.street},
         {
             "key": "city",
@@ -453,15 +453,19 @@ def _pass_json(
             "value": f"{contact.postal_code} {contact.city}",
         },
     ]
-    auxiliary_fields = []
-    if contact.show_job_position and contact.job_position is not None:
-        auxiliary_fields.append(
+    show_position = contact.show_job_position and contact.job_position is not None
+    if show_position:
+        secondary_fields = [
             {"key": "position", "label": "POSITION", "value": contact.job_position}
-        )
+        ]
+        auxiliary_fields = address_fields
+    else:
+        secondary_fields = address_fields
+        auxiliary_fields = []
     auxiliary_fields.append(
         {"key": "country", "label": "COUNTRY", "value": contact.country}
     )
-    if homepage:
+    if homepage and not show_position:
         auxiliary_fields.append(
             {"key": "homepage", "label": "WEBSITE", "value": homepage}
         )
@@ -469,7 +473,7 @@ def _pass_json(
         {"key": "email", "label": "Email", "value": str(contact.email)},
         {"key": "phone", "label": "Phone", "value": contact.phone_number},
     ]
-    if contact.show_job_position and contact.job_position is not None:
+    if show_position:
         back_fields.append(
             {"key": "position", "label": "Job Position", "value": contact.job_position}
         )
@@ -478,7 +482,7 @@ def _pass_json(
             {"key": "department", "label": "Department", "value": contact.department}
         )
     back_fields.append({"key": "address", "label": "Address", "value": address})
-    if homepage:
+    if homepage and not show_position:
         back_fields.append({"key": "homepage", "label": "Website", "value": homepage})
     return {
         "formatVersion": 1,
