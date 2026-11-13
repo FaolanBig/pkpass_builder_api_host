@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.0-rc` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.1-rc` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
@@ -94,7 +94,7 @@ kubectl apply -f k8s.yaml
 kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
-The manifest pins the same `v1.8.0-rc` image used by Docker Compose. Update its
+The manifest pins the same `v1.8.1-rc` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
@@ -154,6 +154,9 @@ Field names accept camelCase or snake_case; the labels `Name`, `Academic Degree`
 `Job Position`, and `Phone Number` are also accepted.
 `jobPosition` is optional: omit it or set it to `null` to leave the position off
 both wallet passes and their QR contacts. A supplied string must be nonempty.
+Set the optional boolean `showJobPosition` (or `show_job_position`) to `false`
+to hide a supplied job position on the Apple pass front and back. It defaults to
+`true` and does not change the QR contact or Google Wallet pass.
 
 ```sh
 curl -X POST http://localhost:8000/passes \
@@ -164,6 +167,7 @@ curl -X POST http://localhost:8000/passes \
     "surname": "Lovelace",
     "academicDegree": "PhD",
     "jobPosition": "Researcher",
+    "showJobPosition": false,
     "email": "ada@example.org",
     "phoneNumber": "+1 555 0100",
     "department": "Computing",
@@ -179,7 +183,9 @@ The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
 submitted given name and surname (prefixed with the academic degree unless it is `N/A`), position,
 email, phone, and address, with the organization name as company. The pass front
-shows the name, position, and the full address (street, postal code and city, country); the back contains all fields. The
+shows the name, position (unless hidden), and the full address (street, postal
+code and city, country); the back contains the contact details, except a hidden
+position. The
 department is only shown (pass and vCard) when `SHOW_DEPARTMENT` is `true`, and
 `COMPANY_HOMEPAGE` (optional) adds the company website to the pass and vCard.
 The address is sent as `street`, `postalCode`, `city`, and `country`. An optional profile picture can be sent in the Apple pass

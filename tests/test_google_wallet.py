@@ -112,6 +112,22 @@ class GoogleWalletTests(unittest.TestCase):
                 self.assertNotIn("\r\nTITLE:", generic_object["barcode"]["value"])
                 self.assertIn("ADR;TYPE=WORK:", generic_object["barcode"]["value"])
 
+    def test_apple_position_toggle_does_not_change_google_pass_or_vcard(self) -> None:
+        payload = self.contact.model_dump(exclude={"show_job_position"})
+        contact = ContactRequest.model_validate({**payload, "showJobPosition": False})
+        save_url, _ = build_google_wallet_save_url(contact)
+        claims = jwt.decode(
+            save_url.rsplit("/", 1)[-1],
+            self.public_key,
+            algorithms=["RS256"],
+            audience="google",
+        )
+        generic_object = claims["payload"]["genericObjects"][0]
+        self.assertEqual(
+            generic_object["subheader"]["defaultValue"]["value"], "Researcher"
+        )
+        self.assertIn("\r\nTITLE:Researcher\r\n", generic_object["barcode"]["value"])
+
     @patch.dict("os.environ", {"GOOGLE_WALLET_BACKGROUND_COLOR": "#a1b2c3"})
     def test_uses_configured_google_wallet_background_color(self) -> None:
         save_url, _ = build_google_wallet_save_url(self.contact)
