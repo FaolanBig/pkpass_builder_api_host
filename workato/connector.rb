@@ -40,6 +40,12 @@
           { name: 'givenName', label: 'Given name', optional: false },
           { name: 'surname', label: 'Surname', optional: false },
           { name: 'academicDegree', label: 'Academic degree', optional: false },
+          {
+            name: 'company',
+            label: 'Company',
+            optional: true,
+            hint: 'Optional; defaults to the server organization name.'
+          },
           { name: 'jobPosition', label: 'Job position', optional: true },
           {
             name: 'showJobPosition',

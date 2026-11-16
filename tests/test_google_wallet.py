@@ -22,6 +22,7 @@ class GoogleWalletTests(unittest.TestCase):
             givenName="Ada",
             surname="Lovelace",
             academicDegree="PhD",
+            company="Analytical Engines",
             jobPosition="Researcher",
             email="ada@example.org",
             phoneNumber="+1 555 0100",
@@ -85,6 +86,7 @@ class GoogleWalletTests(unittest.TestCase):
             "QR_CODE",
         )
         self.assertIn("BEGIN:VCARD", generic_object["barcode"]["value"])
+        self.assertIn("ORG:Analytical Engines\r\n", generic_object["barcode"]["value"])
         self.assertIn("TITLE:Researcher\r\n", generic_object["barcode"]["value"])
         body = generic_object["textModulesData"][0]["body"]
         for value in ("ada@example.org", "+1 555 0100", "1 Main St", "London"):
@@ -94,6 +96,22 @@ class GoogleWalletTests(unittest.TestCase):
             generic_object["subheader"]["defaultValue"]["value"],
             "Researcher",
         )
+
+    @patch.dict("os.environ", {"GOOGLE_WALLET_ORGANIZATION_NAME": "Acme"})
+    def test_omitted_company_uses_google_wallet_organization_name(self) -> None:
+        contact = ContactRequest.model_validate(
+            self.contact.model_dump(exclude={"company"})
+        )
+        save_url, _ = build_google_wallet_save_url(contact)
+        claims = jwt.decode(
+            save_url.rsplit("/", 1)[-1],
+            self.public_key,
+            algorithms=["RS256"],
+            audience="google",
+        )
+        vcard = claims["payload"]["genericObjects"][0]["barcode"]["value"]
+
+        self.assertIn("ORG:Acme\r\n", vcard)
 
     def test_omitted_job_position_is_not_in_google_pass_or_vcard(self) -> None:
         payload = self.contact.model_dump(exclude={"job_position"})
@@ -165,6 +183,7 @@ class GoogleWalletTests(unittest.TestCase):
             givenName="N" * 256,
             surname="S" * 256,
             academicDegree="D" * 256,
+            company="C" * 256,
             jobPosition="P" * 256,
             email="ada@example.org",
             phoneNumber="1" * 64,

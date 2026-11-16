@@ -48,6 +48,7 @@ class ContactRequest(BaseModel):
             "academicDegree", "academic_degree", "Academic Degree"
         ),
     )
+    company: str | None = Field(default=None, min_length=1, max_length=256)
     job_position: str | None = Field(
         default=None,
         min_length=1,
@@ -200,10 +201,10 @@ def _address_lines(contact: ContactRequest) -> list[str]:
     ]
 
 
-def _vcard(contact: ContactRequest, company: str) -> str:
+def _vcard(contact: ContactRequest, fallback_company: str) -> str:
     email = str(contact.email)
     degree = _academic_degree(contact)
-    org = _vcard_escape(company)
+    org = _vcard_escape(contact.company or fallback_company)
     if _show_department():
         org += f";{_vcard_escape(contact.department)}"
     lines = [

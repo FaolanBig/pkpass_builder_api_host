@@ -14,7 +14,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.2` from GitHub
+Compose pulls `ghcr.io/faolanbig/pkpass-builder-api-host:v1.8.4` from GitHub
 Container Registry. The image is published by the GitHub Actions workflow.
 Set `IMAGE_TAG` if you want to pin a specific published tag.
 If the package is private, authenticate first with `docker login ghcr.io`.
@@ -94,7 +94,7 @@ kubectl apply -f k8s.yaml
 kubectl -n pkpass-gen rollout status deployment/pkpass-gen
 ```
 
-The manifest pins the same `v1.8.2` image used by Docker Compose. Update its
+The manifest pins the same `v1.8.4` image used by Docker Compose. Update its
 image tag when deploying a different published version. The default deployment
 requires the signing Secret described above. Configure Kubernetes Secrets and
 volumes separately if you need Google Wallet credentials.
@@ -117,13 +117,16 @@ The connection test calls the unauthenticated `/health` endpoint. A successful
 test confirms reachability, **not** that the API key or signing configuration
 is valid. Run a pass-creation action to verify those settings.
 
-Both actions require all seven contact fields. **Create Apple Wallet pass**
-returns `content_base64`, `filename`, and `content_type`; decode the Base64
-content to binary when saving or attaching `contact.pkpass`. It does not return
-a save URL. **Create Google Wallet save link** returns `saveUrl` and `objectId`;
-it requires the Google Wallet server configuration below. The URL includes
-contact information, so handle it as private data. API errors, including 401,
-422, and 500 responses, fail the action rather than producing a pass.
+Both actions require all required contact fields. `company` is optional; when
+omitted, the QR contact uses `ORGANIZATION_NAME` for Apple Wallet or
+`GOOGLE_WALLET_ORGANIZATION_NAME` for Google Wallet.
+**Create Apple Wallet pass** returns `content_base64`, `filename`, and
+`content_type`; decode the Base64 content to binary when saving or attaching
+`contact.pkpass`. It does not return a save URL. **Create Google Wallet save
+link** returns `saveUrl` and `objectId`; it requires the Google Wallet server
+configuration below. The URL includes contact information, so handle it as
+private data. API errors, including 401, 422, and 500 responses, fail the
+action rather than producing a pass.
 Run the local connector contract tests with `ruby workato/test_connector.rb`.
 
 ## Configure colors
@@ -171,6 +174,7 @@ curl -X POST http://localhost:8000/passes \
     "givenName": "Ada",
     "surname": "Lovelace",
     "academicDegree": "PhD",
+    "company": "Analytical Engines",
     "jobPosition": "Researcher",
     "showJobPosition": false,
     "email": "ada@example.org",
@@ -187,7 +191,10 @@ curl -X POST http://localhost:8000/passes \
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
 submitted given name and surname (prefixed with the academic degree unless it is `N/A`), position,
-email, phone, and address, with the organization name as company. The pass front
+email, phone, and address, with the submitted `company` as its organization name
+when supplied, or the endpoint's organization environment variable otherwise.
+This field affects the QR contact only; pass branding continues to use the server
+organization settings. The pass front
 shows the name, position (unless hidden), and the full address (street, postal
 code and city, country); the back contains the contact details, except a hidden
 position. The
@@ -251,6 +258,7 @@ curl -X POST http://localhost:8000/passes/google-wallet \
     "givenName": "Ada",
     "surname": "Lovelace",
     "academicDegree": "PhD",
+    "company": "Analytical Engines",
     "jobPosition": "Researcher",
     "email": "ada@example.org",
     "phoneNumber": "+1 555 0100",
