@@ -97,6 +97,22 @@ class GoogleWalletTests(unittest.TestCase):
             "Researcher",
         )
 
+    @patch.dict("os.environ", {"GOOGLE_WALLET_ORGANIZATION_NAME": "Acme"})
+    def test_omitted_company_uses_google_wallet_organization_name(self) -> None:
+        contact = ContactRequest.model_validate(
+            self.contact.model_dump(exclude={"company"})
+        )
+        save_url, _ = build_google_wallet_save_url(contact)
+        claims = jwt.decode(
+            save_url.rsplit("/", 1)[-1],
+            self.public_key,
+            algorithms=["RS256"],
+            audience="google",
+        )
+        vcard = claims["payload"]["genericObjects"][0]["barcode"]["value"]
+
+        self.assertIn("ORG:Acme\r\n", vcard)
+
     def test_omitted_job_position_is_not_in_google_pass_or_vcard(self) -> None:
         payload = self.contact.model_dump(exclude={"job_position"})
         for extra in ({}, {"jobPosition": None}):

@@ -229,7 +229,6 @@
           "givenName",
           "surname",
           "academicDegree",
-          "company",
           "email",
           "phoneNumber",
           "department",
@@ -258,10 +257,18 @@
             "description": "Academic degree. Also accepts `academic_degree` or `Academic Degree`."
           },
           "company": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256,
-            "description": "Company name included as the organization in the QR code vCard contact."
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional company name included as the organization in the QR code vCard contact. When omitted or null, defaults to the server organization name."
           },
           "jobPosition": {
             "anyOf": [
