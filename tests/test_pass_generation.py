@@ -19,6 +19,7 @@ class PassGenerationTests(unittest.TestCase):
             givenName="Ada",
             surname="Lovelace",
             academicDegree="PhD",
+            company="Analytical Engines",
             jobPosition="Researcher",
             email="ada@example.org",
             phoneNumber="+1 555 0100",
@@ -86,6 +87,13 @@ class PassGenerationTests(unittest.TestCase):
                     self.assertNotIn("position", [field["key"] for field in fields])
                 self.assertNotIn("\r\nTITLE:", pass_data["barcodes"][0]["message"])
                 self.assertIn("ADR;TYPE=WORK:", pass_data["barcodes"][0]["message"])
+
+    def test_company_is_required(self) -> None:
+        payload = self.contact.model_dump()
+        payload.pop("company")
+
+        with self.assertRaises(ValidationError):
+            ContactRequest.model_validate(payload)
 
     @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
     def test_job_position_display_toggle_only_affects_pass_fields(self) -> None:
@@ -195,7 +203,7 @@ class PassGenerationTests(unittest.TestCase):
         self.assertIn("Computing", serialized_pass)
         self.assertIn("https://acme.example", serialized_pass)
         vcard = pass_data["barcodes"][0]["message"]
-        self.assertIn("ORG:Acme;Computing", vcard)
+        self.assertIn("ORG:Analytical Engines;Computing", vcard)
         self.assertIn("URL:https://acme.example", vcard)
         self.assertIn("N:Lovelace;Ada;;PhD;", vcard)
         self.assertIn("FN:PhD Ada Lovelace", vcard)
@@ -209,7 +217,9 @@ class PassGenerationTests(unittest.TestCase):
             pass_data = json.loads(package.read("pass.json"))
         self.assertNotIn("N/A", json.dumps(pass_data))
         self.assertIn("FN:Ada Lovelace", pass_data["barcodes"][0]["message"])
-        self.assertIn("ORG:Acme\r\n", pass_data["barcodes"][0]["message"])
+        self.assertIn(
+            "ORG:Analytical Engines\r\n", pass_data["barcodes"][0]["message"]
+        )
 
     def test_configured_colors_are_used_in_pass_icon_and_qr(self) -> None:
         with patch.dict(

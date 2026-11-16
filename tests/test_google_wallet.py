@@ -22,6 +22,7 @@ class GoogleWalletTests(unittest.TestCase):
             givenName="Ada",
             surname="Lovelace",
             academicDegree="PhD",
+            company="Analytical Engines",
             jobPosition="Researcher",
             email="ada@example.org",
             phoneNumber="+1 555 0100",
@@ -85,6 +86,7 @@ class GoogleWalletTests(unittest.TestCase):
             "QR_CODE",
         )
         self.assertIn("BEGIN:VCARD", generic_object["barcode"]["value"])
+        self.assertIn("ORG:Analytical Engines\r\n", generic_object["barcode"]["value"])
         self.assertIn("TITLE:Researcher\r\n", generic_object["barcode"]["value"])
         body = generic_object["textModulesData"][0]["body"]
         for value in ("ada@example.org", "+1 555 0100", "1 Main St", "London"):
@@ -165,6 +167,7 @@ class GoogleWalletTests(unittest.TestCase):
             givenName="N" * 256,
             surname="S" * 256,
             academicDegree="D" * 256,
+            company="C" * 256,
             jobPosition="P" * 256,
             email="ada@example.org",
             phoneNumber="1" * 64,

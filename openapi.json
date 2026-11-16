@@ -54,6 +54,7 @@
                   "givenName": "Ada",
                   "surname": "Lovelace",
                   "academicDegree": "PhD",
+                  "company": "Analytical Engines",
                   "jobPosition": "Researcher",
                   "email": "ada@example.org",
                   "phoneNumber": "+1 555 0100",
@@ -138,6 +139,7 @@
                 "givenName": "Ada",
                 "surname": "Lovelace",
                 "academicDegree": "PhD",
+                "company": "Analytical Engines",
                 "jobPosition": "Researcher",
                 "email": "ada@example.org",
                 "phoneNumber": "+1 555 0100",
@@ -227,6 +229,7 @@
           "givenName",
           "surname",
           "academicDegree",
+          "company",
           "email",
           "phoneNumber",
           "department",
@@ -253,6 +256,12 @@
             "minLength": 1,
             "maxLength": 256,
             "description": "Academic degree. Also accepts `academic_degree` or `Academic Degree`."
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Company name included as the organization in the QR code vCard contact."
           },
           "jobPosition": {
             "anyOf": [
