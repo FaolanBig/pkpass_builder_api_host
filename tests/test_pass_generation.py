@@ -88,12 +88,18 @@ class PassGenerationTests(unittest.TestCase):
                 self.assertNotIn("\r\nTITLE:", pass_data["barcodes"][0]["message"])
                 self.assertIn("ADR;TYPE=WORK:", pass_data["barcodes"][0]["message"])
 
-    def test_company_is_required(self) -> None:
-        payload = self.contact.model_dump()
-        payload.pop("company")
+    @patch.dict(
+        "os.environ",
+        {"PKPASS_SIGNING_MODE": "unsigned", "ORGANIZATION_NAME": "Acme"},
+    )
+    def test_omitted_company_uses_apple_organization_name(self) -> None:
+        contact = ContactRequest.model_validate(
+            self.contact.model_dump(exclude={"company"})
+        )
+        with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+            pass_data = json.loads(package.read("pass.json"))
 
-        with self.assertRaises(ValidationError):
-            ContactRequest.model_validate(payload)
+        self.assertIn("ORG:Acme\r\n", pass_data["barcodes"][0]["message"])
 
     @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
     def test_job_position_display_toggle_only_affects_pass_fields(self) -> None:

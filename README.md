@@ -117,7 +117,9 @@ The connection test calls the unauthenticated `/health` endpoint. A successful
 test confirms reachability, **not** that the API key or signing configuration
 is valid. Run a pass-creation action to verify those settings.
 
-Both actions require the required contact fields, including `company`.
+Both actions require all required contact fields. `company` is optional; when
+omitted, the QR contact uses `ORGANIZATION_NAME` for Apple Wallet or
+`GOOGLE_WALLET_ORGANIZATION_NAME` for Google Wallet.
 **Create Apple Wallet pass** returns `content_base64`, `filename`, and
 `content_type`; decode the Base64 content to binary when saving or attaching
 `contact.pkpass`. It does not return a save URL. **Create Google Wallet save
@@ -189,7 +191,8 @@ curl -X POST http://localhost:8000/passes \
 The response is a `.pkpass` archive with `pass.json`, icons, a QR PNG, and the
 Wallet QR barcode configuration. The QR payload is a vCard 3.0 containing the
 submitted given name and surname (prefixed with the academic degree unless it is `N/A`), position,
-email, phone, and address, with the submitted `company` as its organization name.
+email, phone, and address, with the submitted `company` as its organization name
+when supplied, or the endpoint's organization environment variable otherwise.
 This field affects the QR contact only; pass branding continues to use the server
 organization settings. The pass front
 shows the name, position (unless hidden), and the full address (street, postal
