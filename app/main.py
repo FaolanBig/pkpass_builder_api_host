@@ -48,6 +48,7 @@ class ContactRequest(BaseModel):
             "academicDegree", "academic_degree", "Academic Degree"
         ),
     )
+    company: str = Field(min_length=1, max_length=256)
     job_position: str | None = Field(
         default=None,
         min_length=1,
@@ -200,10 +201,10 @@ def _address_lines(contact: ContactRequest) -> list[str]:
     ]
 
 
-def _vcard(contact: ContactRequest, company: str) -> str:
+def _vcard(contact: ContactRequest) -> str:
     email = str(contact.email)
     degree = _academic_degree(contact)
-    org = _vcard_escape(company)
+    org = _vcard_escape(contact.company)
     if _show_department():
         org += f";{_vcard_escape(contact.department)}"
     lines = [
@@ -274,7 +275,7 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
 
     object_id = f"{issuer_id}.{uuid.uuid4()}"
     organization_name = os.getenv("GOOGLE_WALLET_ORGANIZATION_NAME", "Contact Pass")
-    vcard = _vcard(contact, organization_name)
+    vcard = _vcard(contact)
     generic_object = {
         "id": object_id,
         "classId": class_id,
@@ -578,7 +579,7 @@ def build_pkpass(contact: ContactRequest) -> bytes:
         organization_name = os.getenv("ORGANIZATION_NAME", "Contact Pass")
 
     serial_number = str(uuid.uuid4())
-    vcard = _vcard(contact, organization_name)
+    vcard = _vcard(contact)
 
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(vcard)
