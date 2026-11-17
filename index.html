@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="Create branded Apple Wallet contact passes and Google Wallet save links from a simple, self-hosted API.">
+  <title>PKPass Builder — Contact passes, ready for Wallet</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1220;
+      --panel: #111b2b;
+      --panel-soft: #142235;
+      --line: rgba(190, 211, 229, .13);
+      --text: #f3f7fa;
+      --muted: #a4b4c3;
+      --mint: #85f0c4;
+      --blue: #9ac9ff;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 78% 6%, rgba(62, 131, 130, .16), transparent 34rem),
+        radial-gradient(ellipse at 6% 34%, rgba(65, 103, 167, .11), transparent 35rem),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+    a:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
+    .wrap { width: min(var(--max), calc(100% - 48px)); margin-inline: auto; }
+    .eyebrow {
+      color: var(--mint);
+      font-size: .75rem;
+      font-weight: 750;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    header {
+      position: relative;
+      z-index: 1;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 760; letter-spacing: -.025em; }
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid rgba(133, 240, 196, .4);
+      border-radius: 11px;
+      background: rgba(133, 240, 196, .09);
+      color: var(--mint);
+    }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .nav-links { display: flex; align-items: center; gap: 30px; }
+    .nav-links a { color: var(--muted); font-size: .9rem; text-decoration: none; transition: color .2s ease; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links .nav-cta { color: var(--mint); font-weight: 700; }
+
+    .hero { padding: 92px 0 90px; }
+    .hero-grid { display: grid; grid-template-columns: 1.08fr .92fr; align-items: center; gap: 62px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 700px;
+      margin: 18px 0 22px;
+      font-size: clamp(3rem, 6.2vw, 5.5rem);
+      line-height: .99;
+      letter-spacing: -.075em;
+    }
+    h1 span { color: var(--mint); }
+    .hero-copy { max-width: 600px; margin-bottom: 30px; color: var(--muted); font-size: 1.15rem; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; }
+    .button {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 19px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      background: var(--mint);
+      color: #092017;
+      font-size: .92rem;
+      font-weight: 760;
+      text-decoration: none;
+      transition: transform .2s ease, background .2s ease;
+    }
+    .button:hover { transform: translateY(-2px); background: #a5f8d7; }
+    .button.secondary { border-color: var(--line); background: rgba(255,255,255,.025); color: var(--text); }
+    .button.secondary:hover { background: rgba(255,255,255,.08); }
+    .button svg { width: 17px; height: 17px; }
+    .hero-note { display: flex; align-items: center; gap: 8px; margin-top: 22px; color: #8093a6; font-size: .8rem; }
+    .hero-note svg { flex: 0 0 auto; width: 15px; color: var(--mint); }
+
+    .visual { position: relative; min-height: 385px; display: grid; place-items: center; }
+    .visual::before {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border: 1px solid rgba(133, 240, 196, .11);
+      border-radius: 50%;
+      box-shadow: 0 0 0 34px rgba(133, 240, 196, .025), 0 0 0 72px rgba(133, 240, 196, .018);
+      content: "";
+    }
+    .wallet-card {
+      position: relative;
+      width: min(320px, 85%);
+      min-height: 365px;
+      overflow: hidden;
+      padding: 25px;
+      border: 1px solid rgba(255,255,255,.19);
+      border-radius: 21px;
+      background: linear-gradient(145deg, #20443f 0%, #142d38 53%, #17273a 100%);
+      box-shadow: 0 34px 90px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.13);
+      transform: rotate(3deg);
+    }
+    .wallet-card::after {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -100px;
+      top: -90px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 50%;
+      box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 48px rgba(255,255,255,.025);
+      content: "";
+    }
+    .card-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
+    .card-brand { font-size: .76rem; font-weight: 760; letter-spacing: .03em; }
+    .card-chip { display: grid; width: 33px; height: 33px; place-items: center; border: 1px solid rgba(255,255,255,.17); border-radius: 10px; background: rgba(255,255,255,.09); color: var(--mint); }
+    .card-chip svg { width: 18px; height: 18px; }
+    .avatar {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: 61px;
+      height: 61px;
+      place-items: center;
+      margin-top: 42px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 50%;
+      background: linear-gradient(135deg, #b6efce, #5db5aa);
+      color: #16352f;
+      font-size: 1.12rem;
+      font-weight: 800;
+    }
+    .card-name { position: relative; z-index: 1; margin: 16px 0 0; font-size: 1.55rem; font-weight: 730; letter-spacing: -.04em; }
+    .card-role { position: relative; z-index: 1; margin: 2px 0 22px; color: #b7cfc9; font-size: .86rem; }
+    .card-rule { position: relative; z-index: 1; height: 1px; background: rgba(255,255,255,.15); }
+    .card-detail { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; margin-top: 13px; color: #d3e2dd; font-size: .77rem; }
+    .card-detail svg { width: 14px; height: 14px; color: var(--mint); }
+    .qr {
+      position: absolute;
+      right: 24px;
+      bottom: 23px;
+      display: grid;
+      width: 68px;
+      height: 68px;
+      place-items: center;
+      border: 7px solid #fff;
+      border-radius: 7px;
+      background-color: #fff;
+      background-image: linear-gradient(90deg, #142d38 18%, transparent 18%, transparent 35%, #142d38 35%, #142d38 50%, transparent 50%, transparent 70%, #142d38 70%), linear-gradient(#142d38 18%, transparent 18%, transparent 36%, #142d38 36%, #142d38 53%, transparent 53%, transparent 73%, #142d38 73%);
+      background-size: 18px 18px;
+    }
+    .qr::after { width: 15px; height: 15px; border: 3px solid #142d38; background: #fff; content: ""; }
+    .float-tag {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(17, 27, 43, .94);
+      box-shadow: 0 14px 40px rgba(0,0,0,.22);
+      color: var(--text);
+      font-size: .78rem;
+      font-weight: 680;
+    }
+    .float-tag svg { width: 18px; height: 18px; color: var(--mint); }
+    .tag-apple { top: 49px; left: 3px; }
+    .tag-google { right: -4px; bottom: 54px; }
+
+    .trust-row { border-block: 1px solid var(--line); background: rgba(255,255,255,.018); }
+    .trust-inner { display: flex; min-height: 83px; align-items: center; justify-content: space-between; gap: 22px; color: var(--muted); font-size: .86rem; }
+    .trust-item { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; }
+    .trust-item svg { width: 17px; height: 17px; color: var(--mint); }
+
+    section.content-section { padding: 100px 0; }
+    .section-heading { max-width: 650px; margin-bottom: 42px; }
+    .section-heading h2 { margin: 12px 0 13px; font-size: clamp(2rem, 4vw, 3.15rem); line-height: 1.1; letter-spacing: -.055em; }
+    .section-heading p { margin-bottom: 0; color: var(--muted); font-size: 1.04rem; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature {
+      min-height: 236px;
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+    }
+    .feature-icon { display: grid; width: 42px; height: 42px; place-items: center; margin-bottom: 23px; border: 1px solid rgba(133,240,196,.19); border-radius: 12px; background: rgba(133,240,196,.07); color: var(--mint); }
+    .feature-icon svg { width: 21px; height: 21px; }
+    .feature h3 { margin-bottom: 8px; font-size: 1.06rem; letter-spacing: -.02em; }
+    .feature p { margin-bottom: 0; color: var(--muted); font-size: .91rem; }
+
+    .api-section { background: linear-gradient(180deg, transparent, rgba(255,255,255,.025), transparent); }
+    .api-grid { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: 54px; }
+    .api-grid .section-heading { margin: 0; }
+    .endpoint-list { display: grid; gap: 11px; margin-top: 24px; }
+    .endpoint { display: flex; align-items: center; gap: 12px; color: #dce7ed; font-size: .9rem; }
+    .method { min-width: 49px; padding: 3px 7px; border-radius: 5px; background: rgba(133,240,196,.1); color: var(--mint); font: 700 .68rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+    .method.get { background: rgba(154,201,255,.1); color: var(--blue); }
+    .code-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #0a101a; box-shadow: 0 24px 70px rgba(0,0,0,.22); }
+    .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: #9aabba; font-size: .77rem; }
+    .dots { display: inline-flex; gap: 5px; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; background: #526170; }
+    .code-card pre { overflow-x: auto; margin: 0; padding: 21px; color: #d2e0e8; font: .78rem/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .code-card .comment { color: #708396; }
+    .code-card .key { color: #a5d5ff; }
+    .code-card .str { color: #a4efc8; }
+    .code-card .var { color: #e8c98f; }
+
+    .deploy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .deploy-card { padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .deploy-card h3 { margin-bottom: 7px; font-size: 1rem; }
+    .deploy-card p { margin-bottom: 0; color: var(--muted); font-size: .88rem; }
+    .deploy-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 17px; color: var(--mint); font-size: .83rem; font-weight: 700; text-decoration: none; }
+    .deploy-link:hover { color: #b0f8dc; }
+    .deploy-link svg { width: 14px; height: 14px; transition: transform .2s ease; }
+    .deploy-link:hover svg { transform: translateX(3px); }
+    .deploy-label { display: block; margin-bottom: 16px; color: var(--mint); font: 700 .68rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-top: 24px;
+      padding: 17px 19px;
+      border: 1px solid rgba(245, 196, 115, .2);
+      border-radius: 10px;
+      background: rgba(245, 196, 115, .045);
+      color: #c4b99e;
+      font-size: .84rem;
+    }
+    .notice svg { flex: 0 0 auto; width: 18px; height: 18px; color: #efc276; }
+    .notice strong { color: #f1d8a9; }
+
+    .closing { padding: 48px 0 92px; }
+    .closing-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+      padding: 38px 42px;
+      border: 1px solid rgba(133,240,196,.19);
+      border-radius: 16px;
+      background: radial-gradient(ellipse at 100% 0, rgba(133,240,196,.1), transparent 45%), var(--panel);
+    }
+    .closing-panel h2 { margin: 8px 0 5px; font-size: clamp(1.55rem, 3vw, 2.2rem); letter-spacing: -.045em; }
+    .closing-panel p { margin: 0; color: var(--muted); font-size: .92rem; }
+    footer { border-top: 1px solid var(--line); }
+    .footer-inner { display: flex; min-height: 82px; align-items: center; justify-content: space-between; gap: 18px; color: #8293a3; font-size: .8rem; }
+    .footer-links { display: flex; gap: 21px; }
+    .footer-links a { color: #aebdca; text-decoration: none; }
+    .footer-links a:hover { color: var(--mint); }
+
+    @media (max-width: 850px) {
+      .hero-grid { grid-template-columns: 1fr .8fr; gap: 24px; }
+      .visual { transform: scale(.9); }
+      .api-grid { grid-template-columns: 1fr; gap: 35px; }
+      .features, .deploy-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature:last-child { grid-column: span 2; min-height: 0; }
+    }
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 36px, var(--max)); }
+      .nav { min-height: 67px; }
+      .nav-links { gap: 16px; }
+      .nav-links a { font-size: .8rem; }
+      .nav-links a:nth-child(1), .nav-links a:nth-child(2) { display: none; }
+      .hero { padding: 67px 0 55px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 21px; }
+      h1 { max-width: 540px; font-size: clamp(3.1rem, 15vw, 5rem); }
+      .hero-copy { font-size: 1.02rem; }
+      .visual { min-height: 355px; margin-top: 5px; transform: scale(.88); }
+      .tag-apple { left: 0; }
+      .tag-google { right: 0; }
+      .trust-inner { flex-wrap: wrap; justify-content: flex-start; gap: 14px 23px; padding-block: 20px; }
+      .trust-item { font-size: .78rem; }
+      section.content-section { padding: 72px 0; }
+      .features, .deploy-grid { grid-template-columns: 1fr; }
+      .feature:last-child { grid-column: auto; }
+      .feature { min-height: 0; }
+      .closing { padding: 24px 0 65px; }
+      .closing-panel { align-items: flex-start; flex-direction: column; padding: 28px 24px; }
+      .footer-inner { align-items: flex-start; flex-direction: column; justify-content: center; padding-block: 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="#" aria-label="PKPass Builder home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h4"/><path d="m14 16 1.5 1.5L19 14"/></svg>
+        </span>
+        <span>PKPass Builder</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#api">API</a>
+        <a href="#deploy">Deploy</a>
+        <a class="nav-cta" href="https://github.com/FaolanBig/pkpass_builder_api_host">View on GitHub&nbsp; ↗</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-grid wrap">
+        <div>
+          <div class="eyebrow">Open source · Self-hosted · API-first</div>
+          <h1>Contact passes,<br><span>ready for Wallet.</span></h1>
+          <p class="hero-copy">Turn contact details into polished Apple Wallet passes or Google Wallet save links. A small, self-hosted API puts pass creation right in your apps and automations.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md">
+              Get started
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="button secondary" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/openapi.json">Explore the API</a>
+          </div>
+          <div class="hero-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
+            Your service, your infrastructure, your API key.
+          </div>
+        </div>
+
+        <div class="visual" aria-label="Illustration of a branded digital contact pass with QR code">
+          <div class="float-tag tag-apple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 6h6M9 17h6"/></svg>
+            Apple Wallet
+          </div>
+          <div class="wallet-card" aria-hidden="true">
+            <div class="card-top">
+              <span class="card-brand">YOUR COMPANY</span>
+              <span class="card-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg></span>
+            </div>
+            <div class="avatar">AL</div>
+            <p class="card-name">Ada Lovelace</p>
+            <p class="card-role">Researcher · Analytical Engines</p>
+            <div class="card-rule"></div>
+            <div class="card-detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg> ada@example.org</div>
+            <div class="card-detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 11.2 19a19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.7L7.7 9.5a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 1.7-.6l2.8.5a2 2 0 0 1 1.7 1.8Z"/></svg> +1 555 0100</div>
+            <div class="qr"></div>
+          </div>
+          <div class="float-tag tag-google">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg>
+            Google Wallet
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-row">
+      <div class="trust-inner wrap">
+        <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg> API-key protected</span>
+        <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="10" cy="17" r="1"/></svg> Customizable pass branding</span>
+        <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 14h2M14 18h6v2h-6z"/></svg> vCard QR on every pass</span>
+        <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg> Workato connector included</span>
+      </div>
+    </div>
+
+    <section class="content-section" id="features">
+      <div class="wrap">
+        <div class="section-heading">
+          <div class="eyebrow">One contact API, two wallets</div>
+          <h2>Make every introduction count.</h2>
+          <p>Generate useful, on-brand contact passes from the same structured contact data, then fit pass creation into the systems you already use.</p>
+        </div>
+        <div class="features">
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 6h6M9 17h6"/></svg></div>
+            <h3>Apple Wallet passes</h3>
+            <p>Return a ready-to-save <code>.pkpass</code> with contact details, configurable colors, optional profile thumbnail, and a scannable vCard QR code.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg></div>
+            <h3>Google Wallet save links</h3>
+            <p>Create a signed save URL for a Google Wallet Generic Pass, along with its object ID. Recipients can add the contact right to their wallet.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg></div>
+            <h3>Contact data that travels</h3>
+            <p>Every pass QR encodes a vCard 3.0 contact. Scan it to add the submitted details directly to a phone's address book.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><path d="m8 3-2 2 2 2M16 10l2 2-2 2"/></svg></div>
+            <h3>Simple HTTP interface</h3>
+            <p>Send JSON to a small REST API protected by an API key. Use the interactive docs and OpenAPI specification to integrate your stack.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4m-4 4h10"/></svg></div>
+            <h3>Automation-ready</h3>
+            <p>Use the included Workato connector to create an Apple pass or Google Wallet link as part of your business workflows.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="15" rx="2"/><path d="M8 21h8m-4-2v2M7 9h10M7 13h5"/></svg></div>
+            <h3>Deploy on your terms</h3>
+            <p>Run it with Docker Compose, a Docker container, or Kubernetes. Keep API access and signing credentials in your own environment.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section api-section" id="api">
+      <div class="api-grid wrap">
+        <div class="section-heading">
+          <div class="eyebrow">A developer-friendly API</div>
+          <h2>One request to make it real.</h2>
+          <p>Post a contact once, and get back a downloadable Apple pass. Or request a Google Wallet save link from the same service.</p>
+          <div class="endpoint-list" aria-label="Available endpoints">
+            <div class="endpoint"><span class="method">POST</span><code>/passes</code><span>Apple Wallet .pkpass</span></div>
+            <div class="endpoint"><span class="method">POST</span><code>/passes/google-wallet</code><span>Google Wallet save link</span></div>
+            <div class="endpoint"><span class="method get">GET</span><code>/health</code><span>Service health check</span></div>
+          </div>
+        </div>
+        <div class="code-card" aria-label="Example curl request">
+          <div class="code-head"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Request · Apple Wallet pass</span><span>curl</span></div>
+          <pre><code><span class="comment"># Save the response as a .pkpass file</span>
+curl -X POST http://localhost:8000/passes \
+  -H <span class="str">"X-API-Key: $API_KEY"</span> \
+  -H <span class="str">'Content-Type: application/json'</span> \
+  -d '{
+    <span class="key">"givenName"</span>: <span class="str">"Ada"</span>,
+    <span class="key">"surname"</span>: <span class="str">"Lovelace"</span>,
+    <span class="key">"academicDegree"</span>: <span class="str">"PhD"</span>,
+    <span class="key">"company"</span>: <span class="str">"Analytical Engines"</span>,
+    <span class="key">"email"</span>: <span class="str">"ada@example.org"</span>,
+    <span class="key">"phoneNumber"</span>: <span class="str">"+1 555 0100"</span>,
+    <span class="key">"department"</span>: <span class="str">"Computing"</span>,
+    <span class="key">"street"</span>: <span class="str">"1 Main St"</span>,
+    <span class="key">"postalCode"</span>: <span class="str">"SW1A 1AA"</span>,
+    <span class="key">"city"</span>: <span class="str">"London"</span>,
+    <span class="key">"country"</span>: <span class="str">"UK"</span>
+  }' \
+  -o contact.pkpass</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section" id="deploy">
+      <div class="wrap">
+        <div class="section-heading">
+          <div class="eyebrow">Fits your infrastructure</div>
+          <h2>Pick your path to production.</h2>
+          <p>Get started locally, then deploy wherever your team runs services.</p>
+        </div>
+        <div class="deploy-grid">
+          <article class="deploy-card">
+            <span class="deploy-label">01 / QUICK START</span>
+            <h3>Docker Compose</h3>
+            <p>Pull the published container and bring the API up with Compose. A configured API key is required.</p>
+            <a class="deploy-link" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md#docker-compose">View setup instructions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </article>
+          <article class="deploy-card">
+            <span class="deploy-label">02 / CONTAINER</span>
+            <h3>Docker</h3>
+            <p>Build and run the image yourself, then connect applications to your service over HTTP.</p>
+            <a class="deploy-link" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md#docker">View setup instructions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </article>
+          <article class="deploy-card">
+            <span class="deploy-label">03 / CLUSTER</span>
+            <h3>Kubernetes</h3>
+            <p>Deploy with the included manifest and configure your API and wallet credentials as Kubernetes Secrets.</p>
+            <a class="deploy-link" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md#kubernetes">View setup instructions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </article>
+        </div>
+        <div class="notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01"/><path d="M10.3 3.9 1.8 18.5A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.5L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+          <span><strong>Apple Wallet setup:</strong> The default unsigned mode is for development and inspection; unsigned packages cannot be installed in Apple Wallet. Production-ready Apple passes require valid Pass Type ID signing credentials. Google Wallet links also require an issuer, an approved Generic Class, and an authorized service account.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="closing-panel wrap">
+        <div>
+          <div class="eyebrow">Ready when you are</div>
+          <h2>Build a better way to share contact details.</h2>
+          <p>Explore the code, read the setup guide, and make it your own.</p>
+        </div>
+        <div class="actions">
+          <a class="button" href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md">Read the setup guide&nbsp; ↗</a>
+          <a class="button secondary" href="https://github.com/FaolanBig/pkpass_builder_api_host">GitHub repository</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner wrap">
+      <a class="brand" href="#" aria-label="PKPass Builder home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h4"/><path d="m14 16 1.5 1.5L19 14"/></svg>
+        </span>
+        <span>PKPass Builder</span>
+      </a>
+      <span>Open source, self-hosted, and built for integrations.</span>
+      <div class="footer-links">
+        <a href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/README.md">Documentation</a>
+        <a href="https://github.com/FaolanBig/pkpass_builder_api_host/blob/main/openapi.json">OpenAPI</a>
+        <a href="https://github.com/FaolanBig/pkpass_builder_api_host">GitHub</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
