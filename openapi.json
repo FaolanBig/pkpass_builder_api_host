@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "PKPass Builder API",
-    "version": "1.9.0-rc",
+    "version": "1.9.0",
     "description": "Creates Apple Wallet contact passes and Google Wallet Generic Pass save links containing the submitted contact data and a QR code with a vCard 3.0 contact payload. In unsigned mode Apple packages are for development and cannot be installed in Apple Wallet. Signed Apple passes require valid Apple Pass Type ID signing credentials."
   },
   "servers": [
