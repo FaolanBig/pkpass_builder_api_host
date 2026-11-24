@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: pkpass-gen
-          image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.9.0-rc
+          image: ghcr.io/faolanbig/pkpass-builder-api-host:v1.9.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
