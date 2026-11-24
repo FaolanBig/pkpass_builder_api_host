@@ -62,7 +62,8 @@ class ContactRequest(BaseModel):
         description="Show job position on the Apple pass; the QR contact is unaffected.",
     )
     email: EmailStr
-    phone_number: str = Field(
+    phone_number: str | None = Field(
+        default=None,
         min_length=1,
         max_length=64,
         validation_alias=AliasChoices("phoneNumber", "phone_number", "Phone Number"),
@@ -81,6 +82,13 @@ class ContactRequest(BaseModel):
         max_length=6_666_668,
         validation_alias=AliasChoices("profilePicture", "profile_picture"),
     )
+
+    @field_validator("phone_number", mode="before")
+    @classmethod
+    def normalize_phone_number(cls, value: object) -> object:
+        if isinstance(value, str) and value.strip().upper() == "N/A":
+            return None
+        return value
 
     @field_validator("profile_picture")
     @classmethod
@@ -179,6 +187,13 @@ def _academic_degree(contact: ContactRequest) -> str | None:
     return None if not degree or degree.upper() == "N/A" else degree
 
 
+def _phone_number(contact: ContactRequest) -> str | None:
+    if contact.phone_number is None:
+        return None
+    phone = contact.phone_number.strip()
+    return None if not phone or phone.upper() == "N/A" else phone
+
+
 def _display_name(contact: ContactRequest) -> str:
     degree = _academic_degree(contact)
     full_name = f"{contact.given_name} {contact.surname}"
@@ -204,6 +219,7 @@ def _address_lines(contact: ContactRequest) -> list[str]:
 def _vcard(contact: ContactRequest, fallback_company: str) -> str:
     email = str(contact.email)
     degree = _academic_degree(contact)
+    phone = _phone_number(contact)
     org = _vcard_escape(contact.company or fallback_company)
     if _show_department():
         org += f";{_vcard_escape(contact.department)}"
@@ -223,7 +239,11 @@ def _vcard(contact: ContactRequest, fallback_company: str) -> str:
         ),
         f"ORG:{org}",
         f"EMAIL;TYPE=WORK:{_vcard_escape(email)}",
-        f"TEL;TYPE=WORK,VOICE:{_vcard_escape(contact.phone_number)}",
+        *(
+            [f"TEL;TYPE=WORK,VOICE:{_vcard_escape(phone)}"]
+            if phone is not None
+            else []
+        ),
         "ADR;TYPE=WORK:;;{};{};;{};{}".format(
             _vcard_escape(contact.street),
             _vcard_escape(contact.city),
@@ -276,6 +296,7 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
     object_id = f"{issuer_id}.{uuid.uuid4()}"
     organization_name = os.getenv("GOOGLE_WALLET_ORGANIZATION_NAME", "Contact Pass")
     vcard = _vcard(contact, organization_name)
+    phone = _phone_number(contact)
     generic_object = {
         "id": object_id,
         "classId": class_id,
@@ -291,7 +312,7 @@ def build_google_wallet_save_url(contact: ContactRequest) -> tuple[str, str]:
                 "body": "\n".join(
                     [
                         f"Email: {contact.email}",
-                        f"Phone: {contact.phone_number}",
+                        *([f"Phone: {phone}"] if phone is not None else []),
                         *(
                             [f"Department: {contact.department}"]
                             if _show_department()
@@ -440,6 +461,7 @@ def _pass_json(
 ) -> dict:
     address = "\n".join(_address_lines(contact))
     homepage = _company_homepage()
+    phone = _phone_number(contact)
     show_department = _show_department()
     header_fields = []
     if show_department:
@@ -472,7 +494,11 @@ def _pass_json(
         )
     back_fields = [
         {"key": "email", "label": "Email", "value": str(contact.email)},
-        {"key": "phone", "label": "Phone", "value": contact.phone_number},
+        *(
+            [{"key": "phone", "label": "Phone", "value": phone}]
+            if phone is not None
+            else []
+        ),
     ]
     if show_position:
         back_fields.append(
