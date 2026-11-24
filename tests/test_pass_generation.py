@@ -227,6 +227,27 @@ class PassGenerationTests(unittest.TestCase):
             "ORG:Analytical Engines\r\n", pass_data["barcodes"][0]["message"]
         )
 
+    @patch.dict("os.environ", {"PKPASS_SIGNING_MODE": "unsigned"})
+    def test_phone_number_is_optional_and_na_is_ignored(self) -> None:
+        payload = self.contact.model_dump(exclude={"phone_number"})
+        cases = (
+            {},
+            {"phoneNumber": None},
+            {"phoneNumber": "N/A"},
+            {"phone_number": "n/a"},
+            {"Phone Number": " N/A "},
+        )
+        for extra in cases:
+            with self.subTest(extra=extra):
+                contact = ContactRequest.model_validate({**payload, **extra})
+                self.assertIsNone(contact.phone_number)
+                with zipfile.ZipFile(BytesIO(build_pkpass(contact))) as package:
+                    pass_data = json.loads(package.read("pass.json"))
+                self.assertNotIn("phone", pass_data["generic"]["backFields"])
+                vcard = pass_data["barcodes"][0]["message"]
+                self.assertNotIn("TEL;", vcard)
+                self.assertNotIn("N/A", json.dumps(pass_data))
+
     def test_configured_colors_are_used_in_pass_icon_and_qr(self) -> None:
         with patch.dict(
             "os.environ",

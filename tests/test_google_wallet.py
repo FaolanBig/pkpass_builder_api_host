@@ -130,6 +130,33 @@ class GoogleWalletTests(unittest.TestCase):
                 self.assertNotIn("\r\nTITLE:", generic_object["barcode"]["value"])
                 self.assertIn("ADR;TYPE=WORK:", generic_object["barcode"]["value"])
 
+    def test_phone_number_is_optional_and_na_is_ignored(self) -> None:
+        payload = self.contact.model_dump(exclude={"phone_number"})
+        cases = (
+            {},
+            {"phoneNumber": None},
+            {"phoneNumber": "N/A"},
+            {"phone_number": "n/a"},
+            {"Phone Number": " N/A "},
+        )
+        for extra in cases:
+            with self.subTest(extra=extra):
+                contact = ContactRequest.model_validate({**payload, **extra})
+                self.assertIsNone(contact.phone_number)
+                save_url, _ = build_google_wallet_save_url(contact)
+                claims = jwt.decode(
+                    save_url.rsplit("/", 1)[-1],
+                    self.public_key,
+                    algorithms=["RS256"],
+                    audience="google",
+                )
+                generic_object = claims["payload"]["genericObjects"][0]
+                body = generic_object["textModulesData"][0]["body"]
+                vcard = generic_object["barcode"]["value"]
+                self.assertNotIn("Phone:", body)
+                self.assertNotIn("TEL;", vcard)
+                self.assertNotIn("N/A", body)
+
     def test_apple_position_toggle_does_not_change_google_pass_or_vcard(self) -> None:
         payload = self.contact.model_dump(exclude={"show_job_position"})
         contact = ContactRequest.model_validate({**payload, "showJobPosition": False})

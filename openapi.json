@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "PKPass Builder API",
-    "version": "1.0.0",
+    "version": "1.9.0",
     "description": "Creates Apple Wallet contact passes and Google Wallet Generic Pass save links containing the submitted contact data and a QR code with a vCard 3.0 contact payload. In unsigned mode Apple packages are for development and cannot be installed in Apple Wallet. Signed Apple passes require valid Apple Pass Type ID signing credentials."
   },
   "servers": [
@@ -122,7 +122,7 @@
       "post": {
         "operationId": "createContactPass",
         "summary": "Create a contact pass",
-        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. Optionally, `profilePicture` may contain raw Base64-encoded PNG, JPEG, or WebP image bytes (up to 5 MB; each dimension at most 4096 pixels); it is cropped to a square and displayed as a thumbnail on the pass front. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
+        "description": "Creates a PKPass archive. The QR code encodes a vCard that includes all submitted contact fields. `phoneNumber` is optional and is omitted when `N/A`. Optionally, `profilePicture` may contain raw Base64-encoded PNG, JPEG, or WebP image bytes (up to 5 MB; each dimension at most 4096 pixels); it is cropped to a square and displayed as a thumbnail on the pass front. The JSON request also accepts snake_case variants of camelCase property names. For `name`, `academicDegree`, `jobPosition`, and `phoneNumber`, it additionally accepts `Name`, `Academic Degree`, `Job Position`, and `Phone Number`, respectively.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -230,7 +230,6 @@
           "surname",
           "academicDegree",
           "email",
-          "phoneNumber",
           "department",
           "street",
           "postalCode",
@@ -294,10 +293,18 @@
             "description": "Contact email address."
           },
           "phoneNumber": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64,
-            "description": "Contact phone number. Also accepts `phone_number` or `Phone Number`."
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional contact phone number. Also accepts `phone_number` or `Phone Number`. Use `N/A` to exclude it."
           },
           "department": {
             "type": "string",
