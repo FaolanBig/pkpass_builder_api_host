@@ -126,7 +126,7 @@ class GoogleWalletLinkTooLongError(ValueError):
     pass
 
 
-app = FastAPI(title="PKPass Builder API", version="1.0.0")
+app = FastAPI(title="PKPass Builder API", version="1.9.0-rc")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
