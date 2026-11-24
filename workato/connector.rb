@@ -55,7 +55,12 @@
             hint: 'Defaults to true. The QR contact and Google Wallet are unaffected.'
           },
           { name: 'email', label: 'Email', optional: false },
-          { name: 'phoneNumber', label: 'Phone number', optional: false },
+          {
+            name: 'phoneNumber',
+            label: 'Phone number',
+            optional: true,
+            hint: 'Optional; omit it or use N/A to exclude it.'
+          },
           { name: 'department', label: 'Department', optional: false },
           { name: 'street', label: 'Street', optional: false },
           { name: 'postalCode', label: 'Postal code', optional: false },
